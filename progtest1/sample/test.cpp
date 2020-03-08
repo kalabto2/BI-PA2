@@ -18,6 +18,9 @@
 
 using namespace std;
 #endif /* __PROGTEST__ */
+#include <istream>
+#include <fstream>
+
 
 class ibitstream {
 private:
@@ -28,6 +31,8 @@ public:
     explicit ibitstream(std::istream&);
     ibitstream& get(unsigned int, unsigned int&);
     unsigned int get(unsigned int);
+
+    bool eof();
 };
 
 ibitstream::ibitstream(std::istream& in) : lengthBuff(0), buffer(0), stream(in){ }
@@ -43,6 +48,8 @@ unsigned int ibitstream::get(unsigned int bits) {
     for (unsigned int i = 0; i < bits; i++) {
         if(lengthBuff == 0) {
             buffer = stream.get();
+            if (stream.eof())
+                return res;
             lengthBuff += 8;
         }
         if(lengthBuff > 0) {
@@ -56,6 +63,10 @@ unsigned int ibitstream::get(unsigned int bits) {
     }
     //cout << res << endl;
     return res;
+}
+
+bool ibitstream::eof() {
+    return stream.eof();
 }
 
 class tableNode {
@@ -159,12 +170,16 @@ private:
                 return false;
             res = res + stream.get(6);
         }
-
         return true;
     }
 
 public:
-    explicit tableNode (ibitstream & ibitstream) : stream(ibitstream){
+    explicit tableNode (ibitstream & ibitstream);
+    ~tableNode();
+    bool find (unsigned & data);
+};
+
+tableNode::tableNode (ibitstream & ibitstream) : stream(ibitstream){
         if (ibitstream.get(1) == 1 ){
             // value = ibitstream.get(8);
             utfDecode(value);
@@ -174,36 +189,35 @@ public:
         leaf = false;
         left = new tableNode (ibitstream);
         right = new tableNode (ibitstream);
+}
+
+tableNode::~tableNode(){
+    if (left != nullptr) {
+        left->~tableNode();
+        delete left;
+        left = nullptr;
+    }
+    if (right != nullptr) {
+        right->~tableNode();
+        delete right;
+        right = nullptr;
+    }
+}
+
+bool tableNode::find (unsigned & data){
+    if (leaf){
+        data = value;
+        return true;
     }
 
-    ~tableNode(){
-        if (left != nullptr) {
-            left->~tableNode();
-            delete left;
-            left = nullptr;
-        }
-        if (right != nullptr) {
-            right->~tableNode();
-            delete right;
-            right = nullptr;
-        }
-    }
+    unsigned c = stream.get(1);
 
-    bool find (unsigned & data){
-        if (leaf){
-            data = value;
-            return true;
-        }
+    if ( c == 0 && left->find(data))
+        return true;
+    return c == 1 && right->find(data);
+}
 
-        unsigned c = stream.get(1);
-
-        if ( c == 0 && left->find(data))
-                return true;
-        return c == 1 && right->find(data);
-    }
-};
-
-bool utfEncode (ofstream & stream, unsigned value){
+bool utfEncode (std::ofstream & stream, unsigned value){
     if (value <= 127){
         stream << (char) value;
     }
@@ -222,19 +236,22 @@ bool utfEncode (ofstream & stream, unsigned value){
     else if (value > 67108863 && value <= 2147483647){
         stream << (char)((value >> 30u) + 252) << (char)(((value >> 24u) & 63u) + 128) << (char)(((value >> 18u) & 63u) + 128) << (char)(((value >> 12u) & 63u) + 128) << (char)(((value >> 6u) & 63u) + 128) << (char)((value & 63u) + 128);
     }
+    else
+        return false;
+    
     return true;
 }
 
 bool decompressFile ( const char * inFileName, const char * outFileName )
 {
     std::ifstream inFile (inFileName, std::ifstream::in | std::ifstream::binary);
-    ofstream outFile (outFileName, ios::out | ios::binary);
+    std::ofstream outFile (outFileName, std::ios::out | std::ios::binary);
 
     if(!inFile.is_open() || !outFile.is_open())
         return false;
 
-    ibitstream myStream(inFile);
-    tableNode decodeTable(myStream);
+    ibitstream myStream(inFile);                                                // BUG?
+    tableNode decodeTable(myStream);                                            // BUG?
 
     unsigned charCount;
 
@@ -244,11 +261,16 @@ bool decompressFile ( const char * inFileName, const char * outFileName )
         charCount = ( c == 1 ? 4096 : myStream.get(12));
 
         for (unsigned i = 0; i < charCount; i++){
-            decodeTable.find(character);
+            if( ! decodeTable.find(character) )                                 // BUG?
+                return false;
             // cout << "|" << character ;
             // outFile << (char) character;
-            utfEncode(outFile, character);
+            utfEncode(outFile, character);                                          // BUG? -- spis ne ...
+            if (myStream.eof())
+                return false;
         }
+        if (myStream.eof())
+            return false;
 
         if (c == 0)
             break;
@@ -316,7 +338,7 @@ int main ( void )
   assert ( decompressFile ( "tests/test4.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/test4.orig", "tempfile" ) );
 
-  // assert ( ! decompressFile ( "tests/test5.huf", "tempfile" ) );
+  assert ( ! decompressFile ( "tests/test5.huf", "tempfile" ) );
 
   assert ( decompressFile ( "tests/extra0.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/extra0.orig", "tempfile" ) );

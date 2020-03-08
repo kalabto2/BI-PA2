@@ -39,4 +39,10 @@ set
 -
 queue
 -
+istream
+-
+fstream
+-
+ostream
+-
 
