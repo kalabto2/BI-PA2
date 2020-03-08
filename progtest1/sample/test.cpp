@@ -21,17 +21,16 @@ using namespace std;
 
 class ibitstream {
 private:
-    int length;
+    int lengthBuff;
     unsigned char buffer;
     std::istream& stream;
-
 public:
     explicit ibitstream(std::istream&);
     ibitstream& get(unsigned int, unsigned int&);
     unsigned int get(unsigned int);
 };
 
-ibitstream::ibitstream(std::istream& in) : length(0), buffer(0), stream(in){ }
+ibitstream::ibitstream(std::istream& in) : lengthBuff(0), buffer(0), stream(in){ }
 
 ibitstream& ibitstream::get(unsigned int bits, unsigned int& data) {
     data = get(bits);
@@ -39,24 +38,24 @@ ibitstream& ibitstream::get(unsigned int bits, unsigned int& data) {
 }
 
 unsigned int ibitstream::get(unsigned int bits) {
-    unsigned int acc = 0;
+    unsigned int res = 0;
 
     for (unsigned int i = 0; i < bits; i++) {
-        if(length == 0) {
+        if(lengthBuff == 0) {
             buffer = stream.get();
-            length += 8;
+            lengthBuff += 8;
         }
-        if(length > 0) {
-            length --;
+        if(lengthBuff > 0) {
+            lengthBuff --;
             unsigned int b = buffer >> 7u;
             buffer <<= 1u;
 
-            acc <<= 1u;
-            acc += b;
+            res <<= 1u;
+            res += b;
         }
     }
-    cout << acc << endl;
-    return acc;
+    //cout << res << endl;
+    return res;
 }
 
 class tableNode {
@@ -76,7 +75,7 @@ private:
             i++;
         }
 
-        switch(i){
+        /*switch(i){
             case 0:{
                 res = stream.get(7);
                 break;
@@ -151,18 +150,24 @@ private:
                 res = a + stream.get(6);
                 break;
             }
+        }*/
+
+        res = stream.get((i == 0 ? 7 : 8 - i - 1));
+        for ( int j = 1; j < i; j++){
+            res = res << 6u;
+            if (stream.get(1) != 1 || stream.get(1) !=0)
+                return false;
+            res = res + stream.get(6);
         }
+
         return true;
     }
 
 public:
     explicit tableNode (ibitstream & ibitstream) : stream(ibitstream){
         if (ibitstream.get(1) == 1 ){
-            //
-            //
-            // value = ibitstream.get(8);  // TODO predelat na UTF-8
+            // value = ibitstream.get(8);
             utfDecode(value);
-            //cout << "|" << (char)value <<";";
             leaf = true;
             return;
         }
@@ -172,7 +177,6 @@ public:
     }
 
     ~tableNode(){
-        // cout << "zalez!" << endl;
         if (left != nullptr) {
             left->~tableNode();
             delete left;
@@ -213,10 +217,10 @@ bool utfEncode (ofstream & stream, unsigned value){
         stream << (char)((value >> 18u) + 240) << (char)(((value >> 12u) & 63u) + 128) << (char)(((value >> 6u) & 63u) + 128) << (char)((value & 63u) + 128);
     }
     else if (value > 2097151 && value <= 67108863){
-        stream << (char)((value >> 24u) + 248) << (char)((value & 63u) + 128) << (char)((value & 63u) + 128) << (char)((value & 63u) + 128) << (char)((value & 63) + 128);
+        stream << (char)((value >> 24u) + 248) << (char)(((value >> 18u) & 63u) + 128) << (char)(((value >> 12u) & 63u) + 128) << (char)(((value >> 6u) & 63u) + 128) << (char)((value & 63u) + 128);
     }
     else if (value > 67108863 && value <= 2147483647){
-        stream << (char)((value >> 30u) + 252) << (char)((value & 63) + 128) << (char)((value & 63) + 128) << (char)((value & 63) + 128) << (char)((value & 63) + 128) << (char)((value & 63) + 128);
+        stream << (char)((value >> 30u) + 252) << (char)(((value >> 24u) & 63u) + 128) << (char)(((value >> 18u) & 63u) + 128) << (char)(((value >> 12u) & 63u) + 128) << (char)(((value >> 6u) & 63u) + 128) << (char)((value & 63u) + 128);
     }
     return true;
 }
@@ -232,7 +236,7 @@ bool decompressFile ( const char * inFileName, const char * outFileName )
     ibitstream myStream(inFile);
     tableNode decodeTable(myStream);
 
-    unsigned charCount = 0;
+    unsigned charCount;
 
     while(true){
         unsigned character, c = myStream.get(1);
@@ -265,40 +269,37 @@ bool compressFile ( const char * inFileName, const char * outFileName )
 #ifndef __PROGTEST__
 bool identicalFiles ( const char * fileName1, const char * fileName2 )
 {
+    std::ifstream rightFile(fileName2, std::ifstream::in | std::ifstream::binary);
+    std::ifstream leftFile(fileName1, std::ifstream::in | std::ifstream::binary);
+
+    if(!leftFile.is_open() || !rightFile.is_open())
+        return false;
+
     const int BUFFER_SIZE = 1024;
 
-    std::ifstream lFile(fileName1, std::ifstream::in | std::ifstream::binary);
-    std::ifstream rFile(fileName2, std::ifstream::in | std::ifstream::binary);
-
-    if(!lFile.is_open() || !rFile.is_open())
-    {
-        return false;
-    }
-
-    char *lBuffer = new char[BUFFER_SIZE]();
-    char *rBuffer = new char[BUFFER_SIZE]();
+    char *rBuff = new char[BUFFER_SIZE]();
+    char *lBuff = new char[BUFFER_SIZE]();
 
     do {
-        lFile.read(lBuffer, BUFFER_SIZE);
-        rFile.read(rBuffer, BUFFER_SIZE);
+        leftFile.read(lBuff, BUFFER_SIZE);
+        rightFile.read(rBuff, BUFFER_SIZE);
 
-        if (std::memcmp(lBuffer, rBuffer, BUFFER_SIZE) != 0)
+        if (std::memcmp(lBuff, rBuff, BUFFER_SIZE) != 0)
         {
-            delete[] lBuffer;
-            delete[] rBuffer;
+            delete[] lBuff;
+            delete[] rBuff;
             return false;
         }
-    } while (lFile.good() || rFile.good());
+    } while (leftFile.good() || rightFile.good());
 
-    delete[] lBuffer;
-    delete[] rBuffer;
+    delete[] lBuff;
+    delete[] rBuff;
     return true;
 }
 
 int main ( void )
 {
-
-    /*assert ( identicalFiles ( "bin.huf", "bin.huf" ) );
+    assert ( identicalFiles ( "bin.huf", "bin.huf" ) );
     assert ( identicalFiles ( "origo.orig", "origo2.orig" ) );
   assert ( decompressFile ( "tests/test0.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/test0.orig", "tempfile" ) );
@@ -313,10 +314,9 @@ int main ( void )
   assert ( identicalFiles ( "tests/test3.orig", "tempfile" ) );
 
   assert ( decompressFile ( "tests/test4.huf", "tempfile" ) );
-  assert ( identicalFiles ( "tests/test4.orig", "tempfile" ) );*/
+  assert ( identicalFiles ( "tests/test4.orig", "tempfile" ) );
 
-  //assert ( ! decompressFile ( "tests/test5.huf", "tempfile" ) );
-
+  // assert ( ! decompressFile ( "tests/test5.huf", "tempfile" ) );
 
   assert ( decompressFile ( "tests/extra0.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/extra0.orig", "tempfile" ) );
