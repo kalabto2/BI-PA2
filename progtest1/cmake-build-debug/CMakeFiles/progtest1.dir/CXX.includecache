@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/tom/FIT/PA2/progtest/progtest1/sample/test.cpp
+cstring
+-
+cstdlib
+-
+cstdio
+-
+cctype
+-
+climits
+-
+cassert
+-
+iostream
+-
+iomanip
+-
+fstream
+-
+sstream
+-
+cstdint
+-
+map
+-
+vector
+-
+algorithm
+-
+set
+-
+queue
+-
+
