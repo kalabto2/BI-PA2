@@ -1,2 +1,2 @@
-# Progtestové úlohy
+# Progtestové úlohy - PA2
 

@@ -18,8 +18,6 @@
 
 using namespace std;
 #endif /* __PROGTEST__ */
-#include <istream>
-#include <fstream>
 
 
 class ibitstream {
@@ -85,9 +83,16 @@ public:
 };
 
 tableNode::tableNode (ibitstream & ibitstream, bool & ok) : stream(ibitstream){
+        if (ibitstream.eof() || !ok){
+            ok = false;
+            return;
+        }
+
         if (ibitstream.get(1) == 1 ){
             // value = ibitstream.get(8);
             ok = utfDecode(value);                                   // TODO validace
+            if (stream.eof() || !ok)
+                return;
             leaf = true;
             return;
         }
@@ -103,20 +108,38 @@ tableNode::~tableNode(){
 
 bool tableNode::utfDecode (unsigned & res){     // TODO mozna predelat jen na 4 bajtovy UTF8
     int i = 0;
+    if (stream.eof())
+        return false;
+
     while (true){
         unsigned u = 0;
         u = stream.get(1);
+        if (stream.eof())
+            return false;
         if (u == 0)
             break;
         i++;
     }
+    if (i > 6)
+        return false;
 
     res = stream.get((i == 0 ? 7 : 8 - i - 1));
+    if (stream.eof())
+        return false;
     for ( int j = 1; j < i; j++){
         res = res << 6u;
-        if (stream.get(1) != 1 || stream.get(1) !=0)
+
+        unsigned bit1 = stream.get(1);
+        if (stream.eof())
+            return false;
+        unsigned bit2 = stream.get(1);
+        if (stream.eof())
+            return false;
+        if (bit1 != 1 || bit2 !=0)
             return false;
         res = res + stream.get(6);
+        if (stream.eof())
+            return false;
     }
     return true;
 }
@@ -126,8 +149,13 @@ bool tableNode::find (unsigned & data){
         data = value;
         return true;
     }
+    if (stream.eof())
+        return false;
 
     unsigned c = stream.get(1);
+
+    if (stream.eof())
+        return false;
 
     if ( c == 0 && left->find(data))
         return true;
@@ -155,13 +183,21 @@ bool utfEncode (std::ofstream & stream, unsigned value){
     }
     else
         return false;
-    return true;
+
+    return !stream.fail();
+
 }
 
 bool decompressFile ( const char * inFileName, const char * outFileName )
 {
-    std::ifstream inFile (inFileName, std::ifstream::in | std::ifstream::binary);
-    std::ofstream outFile (outFileName, std::ios::out | std::ios::binary);
+    //std::ifstream inFile (inFileName, std::ifstream::in | std::ifstream::binary);
+    //std::ofstream outFile (outFileName, std::ios::out | std::ios::binary);
+
+    ifstream inFile(inFileName,ios::binary|ios::in);
+    ofstream outFile(outFileName,ios::binary|ios::out);
+
+    if (!outFile.is_open() || outFile.fail())return false;//overeni vstupu
+    if (!inFile.is_open() || inFile.fail())return false;
 
     if(!inFile.is_open() || !outFile.is_open())
         return false;
@@ -177,15 +213,21 @@ bool decompressFile ( const char * inFileName, const char * outFileName )
 
     while(true){
         unsigned character, c = myStream.get(1);
+        if (myStream.eof())
+            return false;
 
         charCount = ( c == 1 ? 4096 : myStream.get(12));
+        if (myStream.eof())
+            return false;
 
         for (unsigned i = 0; i < charCount; i++){
             if( ! decodeTable.find(character) )                                 // BUG?
                 return false;
             // cout << "|" << character ;
             // outFile << (char) character;
-            utfEncode(outFile, character);                                          // BUG? -- spis ne ...
+            bool ok2 = utfEncode(outFile, character);                                          // BUG? -- spis ne ...
+            if (!ok2)
+                return false;
             if (myStream.eof())
                 return false;
         }
@@ -289,6 +331,9 @@ int main ( void )
 
   assert ( decompressFile ( "tests/extra9.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/extra9.orig", "tempfile" ) );
+
+    assert ( ! decompressFile ( "tests/mytest1", "tempfile" ) );        // Prazdny file
+    assert ( ! decompressFile ( "tests/mytest2", "tempfile2" ) );        // validni soubor + tempfile bez prava na zapisovani
 
   return 0;
 }
