@@ -77,131 +77,48 @@ private:
     tableNode * left = nullptr;
     tableNode * right = nullptr;
 
-    bool utfDecode (unsigned & res){
-        int i = 0;
-        while (true){
-            unsigned u = stream.get(1);
-            if (u == 0)
-                break;
-            i++;
-        }
-
-        /*switch(i){
-            case 0:{
-                res = stream.get(7);
-                break;
-            }
-            case 2:{
-                unsigned a = stream.get(5);
-                a = a << 6u;
-                if (stream.get(1) != 1 || stream.get(1) != 0)
-                    return false;
-                res = a + stream.get(6);
-                break;
-            }
-            case 3:{
-                unsigned a = stream.get(4);
-                a = a << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                res = a + stream.get(6);
-                break;
-            }
-            case 4:{
-                unsigned a = stream.get(3);
-                a = a << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                res = a + stream.get(6);
-                break;
-            }
-            case 5:{
-                unsigned a = stream.get(2);
-                a = a << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                res = a + stream.get(6);
-                break;
-            }
-            case 6:{
-                unsigned a = stream.get(1);
-                a = a << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                a = (a + stream.get(6)) << 6u;
-                if (stream.get(1) != 1 || stream.get(1) !=0)
-                    return false;
-                res = a + stream.get(6);
-                break;
-            }
-        }*/
-
-        res = stream.get((i == 0 ? 7 : 8 - i - 1));
-        for ( int j = 1; j < i; j++){
-            res = res << 6u;
-            if (stream.get(1) != 1 || stream.get(1) !=0)
-                return false;
-            res = res + stream.get(6);
-        }
-        return true;
-    }
-
+    bool utfDecode (unsigned & res);
 public:
-    explicit tableNode (ibitstream & ibitstream);
+    explicit tableNode (ibitstream & ibitstream, bool & ok);
     ~tableNode();
     bool find (unsigned & data);
 };
 
-tableNode::tableNode (ibitstream & ibitstream) : stream(ibitstream){
+tableNode::tableNode (ibitstream & ibitstream, bool & ok) : stream(ibitstream){
         if (ibitstream.get(1) == 1 ){
             // value = ibitstream.get(8);
-            utfDecode(value);
+            ok = utfDecode(value);                                   // TODO validace
             leaf = true;
             return;
         }
         leaf = false;
-        left = new tableNode (ibitstream);
-        right = new tableNode (ibitstream);
+        left = new tableNode (ibitstream, ok);
+        right = new tableNode (ibitstream, ok);
 }
 
 tableNode::~tableNode(){
-    if (left != nullptr) {
-        left->~tableNode();
-        delete left;
-        left = nullptr;
+    delete left;
+    delete right;
+}
+
+bool tableNode::utfDecode (unsigned & res){     // TODO mozna predelat jen na 4 bajtovy UTF8
+    int i = 0;
+    while (true){
+        unsigned u = 0;
+        u = stream.get(1);
+        if (u == 0)
+            break;
+        i++;
     }
-    if (right != nullptr) {
-        right->~tableNode();
-        delete right;
-        right = nullptr;
+
+    res = stream.get((i == 0 ? 7 : 8 - i - 1));
+    for ( int j = 1; j < i; j++){
+        res = res << 6u;
+        if (stream.get(1) != 1 || stream.get(1) !=0)
+            return false;
+        res = res + stream.get(6);
     }
+    return true;
 }
 
 bool tableNode::find (unsigned & data){
@@ -238,7 +155,6 @@ bool utfEncode (std::ofstream & stream, unsigned value){
     }
     else
         return false;
-    
     return true;
 }
 
@@ -250,8 +166,12 @@ bool decompressFile ( const char * inFileName, const char * outFileName )
     if(!inFile.is_open() || !outFile.is_open())
         return false;
 
+    bool ok = true;
     ibitstream myStream(inFile);                                                // BUG?
-    tableNode decodeTable(myStream);                                            // BUG?
+    tableNode decodeTable(myStream, ok);
+
+    if (! ok)
+        return false;
 
     unsigned charCount;
 
@@ -321,8 +241,8 @@ bool identicalFiles ( const char * fileName1, const char * fileName2 )
 
 int main ( void )
 {
-    assert ( identicalFiles ( "bin.huf", "bin.huf" ) );
-    assert ( identicalFiles ( "origo.orig", "origo2.orig" ) );
+    //assert ( identicalFiles ( "bin.huf", "bin.huf" ) );
+    //assert ( identicalFiles ( "origo.orig", "origo2.orig" ) );
   assert ( decompressFile ( "tests/test0.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/test0.orig", "tempfile" ) );
 
