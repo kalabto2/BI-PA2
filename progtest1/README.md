@@ -1,4 +1,4 @@
-### Huffmanův kód
+# Huffmanův kód
 
 Celkové procentní hodnocení: 130.00 % Bonus za včasné odevzdání: 0.50 Celkem bodů: 1.30 * ( 5.00 + 0.50 ) = 7.15
 
@@ -24,7 +24,7 @@ Kódování a dekódování si ukážeme na příkladech:
 
 vstupní soubor obsahuje 7 znaků:
 
-Kolotoc
+**Kolotoc**
 
 Pro tento soubor by Huffmanův kód mohl být například:
 

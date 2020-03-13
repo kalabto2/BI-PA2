@@ -59,7 +59,7 @@ unsigned int ibitstream::get(unsigned int bits) {
             res += b;
         }
     }
-    //cout << res << endl;
+    // cout << res << endl;
     return res;
 }
 
@@ -89,13 +89,12 @@ tableNode::tableNode (ibitstream & ibitstream, bool & ok) : stream(ibitstream){
         }
 
         if (ibitstream.get(1) == 1 ){
-            // value = ibitstream.get(8);
-            ok = utfDecode(value);                                   // TODO validace
-            if (stream.eof() || !ok)
-                return;
+            ok = utfDecode(value);
+            if (stream.eof() || !ok) return;
             leaf = true;
             return;
         }
+
         leaf = false;
         left = new tableNode (ibitstream, ok);
         right = new tableNode (ibitstream, ok);
@@ -106,40 +105,32 @@ tableNode::~tableNode(){
     delete right;
 }
 
-bool tableNode::utfDecode (unsigned & res){     // TODO mozna predelat jen na 4 bajtovy UTF8
+bool tableNode::utfDecode (unsigned & res){
     int i = 0;
-    if (stream.eof())
-        return false;
+    if (stream.eof()) return false;
 
     while (true){
         unsigned u = 0;
         u = stream.get(1);
-        if (stream.eof())
-            return false;
-        if (u == 0)
-            break;
+        if (stream.eof()) return false;
+        if (u == 0) break;
         i++;
     }
-    if (i > 6)
-        return false;
+    if (i > 4 || i == 1) return false;
 
     res = stream.get((i == 0 ? 7 : 8 - i - 1));
-    if (stream.eof())
-        return false;
+    if (stream.eof()) return false;
+
     for ( int j = 1; j < i; j++){
         res = res << 6u;
-
         unsigned bit1 = stream.get(1);
-        if (stream.eof())
-            return false;
+        if (stream.eof()) return false;
+
         unsigned bit2 = stream.get(1);
-        if (stream.eof())
-            return false;
-        if (bit1 != 1 || bit2 !=0)
-            return false;
+        if (stream.eof() || bit1 != 1 || bit2 !=0) return false;
+
         res = res + stream.get(6);
-        if (stream.eof())
-            return false;
+        if (stream.eof()) return false;
     }
     return true;
 }
@@ -149,20 +140,25 @@ bool tableNode::find (unsigned & data){
         data = value;
         return true;
     }
-    if (stream.eof())
-        return false;
+    if (stream.eof()) return false;
 
-    unsigned c = stream.get(1);
+    unsigned leafBit = stream.get(1);
+    if (stream.eof()) return false;
 
-    if (stream.eof())
-        return false;
-
-    if ( c == 0 && left->find(data))
+    if (leafBit == 0 && left->find(data))
         return true;
-    return c == 1 && right->find(data);
+    return leafBit == 1 && right->find(data);
 }
 
-bool utfEncode (std::ofstream & stream, unsigned value){
+bool utfEncode (std::ofstream & stream, unsigned value){    // FIXME predelat na lepsi zapis?
+    /*
+    int i;
+    for (i = 1; value == 0; i++){
+        value <<= (i == 1 ? 8 - i + 6 * (i - 1) : 8 - i + 1 + 6 * (i - 1) );
+    }*/
+
+
+
     if (value <= 127){
         stream << (char) value;
     }
@@ -190,51 +186,37 @@ bool utfEncode (std::ofstream & stream, unsigned value){
 
 bool decompressFile ( const char * inFileName, const char * outFileName )
 {
-    //std::ifstream inFile (inFileName, std::ifstream::in | std::ifstream::binary);
-    //std::ofstream outFile (outFileName, std::ios::out | std::ios::binary);
-
     ifstream inFile(inFileName,ios::binary|ios::in);
     ofstream outFile(outFileName,ios::binary|ios::out);
 
-    if (!outFile.is_open() || outFile.fail())return false;//overeni vstupu
-    if (!inFile.is_open() || inFile.fail())return false;
-
-    if(!inFile.is_open() || !outFile.is_open())
-        return false;
+    if (!outFile.is_open() || outFile.fail()) return false;
+    if (!inFile.is_open() || inFile.fail()) return false;
 
     bool ok = true;
-    ibitstream myStream(inFile);                                                // BUG?
+    ibitstream myStream(inFile);
     tableNode decodeTable(myStream, ok);
 
     if (! ok)
         return false;
 
     unsigned charCount;
+    const int CHUNK_SIZE = 4096;
 
     while(true){
-        unsigned character, c = myStream.get(1);
-        if (myStream.eof())
-            return false;
+        unsigned character, chunkBit = myStream.get(1);
+        if (myStream.eof()) return false;
 
-        charCount = ( c == 1 ? 4096 : myStream.get(12));
-        if (myStream.eof())
-            return false;
+        charCount = (chunkBit == 1 ? CHUNK_SIZE : myStream.get(12));
+        if (myStream.eof()) return false;
 
         for (unsigned i = 0; i < charCount; i++){
-            if( ! decodeTable.find(character) )                                 // BUG?
-                return false;
-            // cout << "|" << character ;
-            // outFile << (char) character;
-            bool ok2 = utfEncode(outFile, character);                                          // BUG? -- spis ne ...
-            if (!ok2)
-                return false;
-            if (myStream.eof())
-                return false;
-        }
-        if (myStream.eof())
-            return false;
+            if(!decodeTable.find(character)) return false;
 
-        if (c == 0)
+            ok = utfEncode(outFile, character);
+            if (!ok || myStream.eof()) return false;
+        }
+
+        if (chunkBit == 0)
             break;
     }
 
@@ -283,8 +265,6 @@ bool identicalFiles ( const char * fileName1, const char * fileName2 )
 
 int main ( void )
 {
-    //assert ( identicalFiles ( "bin.huf", "bin.huf" ) );
-    //assert ( identicalFiles ( "origo.orig", "origo2.orig" ) );
   assert ( decompressFile ( "tests/test0.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/test0.orig", "tempfile" ) );
 
@@ -332,8 +312,13 @@ int main ( void )
   assert ( decompressFile ( "tests/extra9.huf", "tempfile" ) );
   assert ( identicalFiles ( "tests/extra9.orig", "tempfile" ) );
 
-    assert ( ! decompressFile ( "tests/mytest1", "tempfile" ) );        // Prazdny file
-    assert ( ! decompressFile ( "tests/mytest2", "tempfile2" ) );        // validni soubor + tempfile bez prava na zapisovani
+  /* =================== VLASTNI TESTY ====================*/
+
+  assert ( ! decompressFile ( "tests/mytest1", "tempfile" ) );                  // Prazdny file
+  assert ( ! decompressFile ( "tests/mytest2", "tempfile2" ) );                 // validni soubor + tempfile bez prava na zapisovani
+  assert ( identicalFiles ( "bin.huf", "bin.huf" ) );                           // testovani identical file fce
+  assert ( identicalFiles ( "origo.orig", "origo2.orig" ) );                    // testovani identical file fce
+  assert ( ! decompressFile ( "tests/in_3502985.bin", "tempfile" ) );           // File s neplatnym utf8 -- 1. bajt zacina na '10'
 
   return 0;
 }
