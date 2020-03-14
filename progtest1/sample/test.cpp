@@ -190,15 +190,7 @@ bool tableNode::huffmanDecode (unsigned & data){
  * @param value Value to encode
  * @return false, if error while loading from stream. Else true.
  */
-bool utfEncode (std::ofstream & stream, unsigned value){    // FIXME predelat na lepsi zapis?
-    /*
-    int i;
-    for (i = 1; value == 0; i++){
-        value <<= (i == 1 ? 8 - i + 6 * (i - 1) : 8 - i + 1 + 6 * (i - 1) );
-    }*/
-
-
-
+bool utfEncode (std::ofstream & stream, unsigned value){
     if (value <= 127){
         stream << (char) value;
     }
