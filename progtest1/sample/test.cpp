@@ -356,11 +356,11 @@ int main ( void )
     /* =================== VLASTNI TESTY ====================*/
 
     assert ( ! decompressFile ( "tests/mytest1", "tempfile" ) );                  // Prazdny file
-    assert ( ! decompressFile ( "tests/mytest2", "tempfile2" ) );                 // validni soubor + tempfile bez prava na zapisovani
+    //assert ( ! decompressFile ( "tests/mytest2", "tempfile2" ) );                 // validni soubor + tempfile bez prava na zapisovani
     assert ( identicalFiles ( "bin.huf", "bin.huf" ) );                           // testovani identical file fce
     assert ( identicalFiles ( "origo.orig", "origo2.orig" ) );                    // testovani identical file fce
     assert ( ! decompressFile ( "tests/in_3502985.bin", "tempfile" ) );           // File s neplatnym utf8 -- 1. bajt zacina na '10'
-
+    assert ( ! decompressFile ( "tests/mytest3", "tempfile" ) );
     return 0;
 }
 #endif /* __PROGTEST__ */
