@@ -16,23 +16,34 @@
 using namespace std;
 #endif /* __PROGTEST__ */
 
+/**
+ * Represents 1 citizen.
+ */
 class Citizen
 {
 private:
     vector <int> income;
     vector <int> expense;
+    string account;
+    string name;
+    string addr;
 public:
     bool isUnique (Citizen *cit2);
     bool setIncome (int value);
     bool setExpense (int value);
     int getSumIncome ();
     int getSumExpense ();
-    string account;
-    string name;
-    string addr;
+    const string &getAccount() const;
+    const string &getName() const;
+    const string &getAddr() const;
     Citizen(string  name, string  addr, string  account);
 };
 
+/**
+ * Decides, if this instance of citizen isn't the same name and address or same account, as another given one.
+ * @param cit2 - another Citizen to be compared.
+ * @return true, if Citizens are uniqe. Else false.
+ */
 bool Citizen::isUnique(Citizen *cit2) {
     return !(this->account == cit2->account || (this->name == cit2->name && this->addr == cit2->addr));
 }
@@ -67,56 +78,95 @@ Citizen::Citizen(string name, string addr, string account) {
     this->account = std::move(account);
 }
 
+const string &Citizen::getAccount() const {
+    return account;
+}
+
+const string &Citizen::getName() const {
+    return name;
+}
+
+const string &Citizen::getAddr() const {
+    return addr;
+}
+
+/**
+ * Encapsulates sorted vector<Citizens*>, and makes "interface". Can easily manipulate with.
+ */
 class CIterator
 {
   public:
-    bool                     AtEnd                         ( void ) const;
-    void                     Next                          ( void );
-    string                   Name                          ( void ) const;
-    string                   Addr                          ( void ) const;
-    string                   Account                       ( void ) const;
-                             CIterator                     ( vector <Citizen *> vector);
+    bool                     AtEnd                         (  ) const;
+    void                     Next                          (  );
+    string                   Name                          (  ) const;
+    string                   Addr                          (  ) const;
+    string                   Account                       (  ) const;
+                             explicit CIterator            ( vector <Citizen *> vector);
   private:
-    std::vector<Citizen*> myVector;         // FIXME aby se nekopirovalo ...
+    std::vector<Citizen*> myVector;
     std::vector<Citizen*>::iterator it;
 };
 
-bool CIterator::AtEnd(void) const {
+/**
+ * @return true, if iterator is at the end.
+ */
+bool CIterator::AtEnd() const {
     return (it == myVector.end());
 }
 
-void CIterator::Next(void) {
+/**
+ * Moves iterator to another record.
+ */
+void CIterator::Next() {
     it = it + 1;
 }
 
-string CIterator::Name(void) const {
-    return (*it)->name;
+string CIterator::Name() const {
+    return (*it)->getName();
 }
 
-string CIterator::Addr(void) const {
-    return (*it)->addr;
+string CIterator::Addr() const {
+    return (*it)->getAddr();
 }
 
-string CIterator::Account(void) const {
-    return (*it)->account;
+string CIterator::Account() const {
+    return (*it)->getAccount();
 }
 
+/**
+ * Constructor
+ * @param myVector - sets vector to iterate.
+ */
 CIterator::CIterator(std::vector<Citizen *> myVector) {
-    this->myVector = myVector;
+    this->myVector = std::move(myVector);
     it = this->myVector.begin();
 }
 
+/**
+ * Compares "alphabeticaly" accounts of 2 citizens.
+ * @param citizen
+ * @param acc - account
+ * @return true, if account of citizen should be before account. Else false.
+ */
 bool accountComp (Citizen * citizen, const string& acc) {
-    //cout << "jou " << (citizen->account < acc) << endl;
-    return citizen->account < acc;
+    return citizen->getAccount() < acc;
 }
 
-bool nameAddrComp (Citizen * citizen, Citizen * citizen2) {
-    if (citizen->name == citizen2->name)
-        return citizen->addr < citizen2->addr;
-    return citizen->name < citizen2->name;
+/**
+ * Compares "alphabeticaly" names of 2 citizens. If they equals, function compare their addresses
+ * @param citizen1 - citizen1
+ * @param citizen2 - citizen2
+ * @return true, if citizen1 should be before citizen2. Else false.
+ */
+bool nameAddrComp (Citizen * citizen1, Citizen * citizen2) {
+    if (citizen1->getName() == citizen2->getName())
+        return citizen1->getAddr() < citizen2->getAddr();
+    return citizen1->getName() < citizen2->getName();
 }
 
+/**
+ * Represents database of taxpayers. Records their identification, income and expense.
+ */
 class CTaxRegister
 {
   public:
@@ -141,12 +191,19 @@ class CTaxRegister
                                                              string          & account,
                                                              int             & sumIncome,
                                                              int             & sumExpense ) const;
-    CIterator                ListByName                    ( void ) const;
+    CIterator                ListByName                    ( ) const;
   private:
     vector <Citizen*> accountSorted;
     vector <Citizen*> nameAddrSorted;
 };
 
+/**
+ * Creates account to citizen (at birth). Accounts numbers and name + addr. must be unique.
+ * @param name - name to be recorded
+ * @param addr - address to be recorded
+ * @param account - account to be recorded
+ * @return false, if account already exists (doesn't have unique name+addr/account). Else true.
+ */
 bool CTaxRegister::Birth(const string &name, const string &addr, const string &account) {
     auto * citizen = new Citizen(name, addr, account);
 
@@ -171,18 +228,23 @@ bool CTaxRegister::Birth(const string &name, const string &addr, const string &a
     return true;
 }
 
+/**
+ * Delete account, information about citizen.
+ * @param name - citizen is searched by this parameter
+ * @param addr - citizen is searched by this parameter
+ * @return false, if account doesn't exist. Else true
+ */
 bool CTaxRegister::Death(const string &name, const string &addr) {
     auto * citizen = new Citizen(name, addr, "");
 
     auto low2 = lower_bound(nameAddrSorted.begin(),nameAddrSorted.end(), citizen, nameAddrComp);
-    if ((low2 == nameAddrSorted.end()) || ((*low2)->name != name || (*low2)->addr != addr)) {
+    if ((low2 == nameAddrSorted.end()) || ((*low2)->getName() != name || (*low2)->getAddr() != addr)) {
         delete citizen;
         return false;
     }
 
     Citizen * tmp = *low2;
-    string account = (*low2)->account;
-    //auto low1 = lower_bound(accountSorted.begin(),accountSorted.end(), account, accountComp);
+    string account = (*low2)->getAccount();
 
     auto low1 = find(accountSorted.begin(), accountSorted.end(), *low2);
 
@@ -194,20 +256,33 @@ bool CTaxRegister::Death(const string &name, const string &addr) {
     return true;
 }
 
+/**
+ * Records 1 income to given citizen.
+ * @param account - citizen is searched by this parameter
+ * @param amount - amount of income
+ * @return false, if account doesn't exist. Else true.
+ */
 bool CTaxRegister::Income(const string &account, int amount) {
     auto low1 = lower_bound(accountSorted.begin(),accountSorted.end(), account, accountComp);
-    if ((low1 == accountSorted.end()) || ((*low1)->account != account))
+    if ((low1 == accountSorted.end()) || ((*low1)->getAccount() != account))
         return false;
 
     (*(low1))->setIncome(amount);
     return true;
 }
 
+/**
+ * Records 1 income to given citizen.
+ * @param name - citizen is searched by this parameter
+ * @param addr - citizen is searched by this parameter
+ * @param amount - amount of income
+ * @return false, if account doesn't exist. Else true.
+ */
 bool CTaxRegister::Income(const string &name, const string &addr, int amount) {
     auto * citizen = new Citizen(name, addr, "");
 
     auto low1 = lower_bound(nameAddrSorted.begin(),nameAddrSorted.end(), citizen, nameAddrComp);
-    if ( (low1 == nameAddrSorted.end()) || ((*low1)->name != name || (*low1)->addr != addr)) {
+    if ( (low1 == nameAddrSorted.end()) || ((*low1)->getName() != name || (*low1)->getAddr() != addr)) {
         delete citizen;
         return false;
     }
@@ -217,20 +292,33 @@ bool CTaxRegister::Income(const string &name, const string &addr, int amount) {
     return true;
 }
 
+/**
+ * Records 1 expense to given citizen.
+ * @param account - citizen is searched by this parameter
+ * @param amount  - ammount of expense
+ * @return false, if account doesn't exist. Else true.
+ */
 bool CTaxRegister::Expense(const string &account, int amount) {
     auto low1 = lower_bound(accountSorted.begin(),accountSorted.end(), account, accountComp);
-    if ((low1 == accountSorted.end()) || ((*low1)->account != account))
+    if ((low1 == accountSorted.end()) || ((*low1)->getAccount() != account))
         return false;
 
     (*(low1))->setExpense(amount);
     return true;
 }
 
+/**
+ * Records 1 expense to given citizen.
+ * @param name - citizen is searched by this parameter
+ * @param addr - citizen is searched by this parameter
+ * @param amount - ammount of expense
+ * @return false, if account doesn't exist. Else true.
+ */
 bool CTaxRegister::Expense(const string &name, const string &addr, int amount) {
     auto * citizen = new Citizen(name, addr, "");
 
     auto low1 = lower_bound(nameAddrSorted.begin(),nameAddrSorted.end(), citizen, nameAddrComp);
-    if ((low1 == nameAddrSorted.end()) || ((*low1)->name != name || (*low1)->addr != addr)) {
+    if ((low1 == nameAddrSorted.end()) || ((*low1)->getName() != name || (*low1)->getAddr() != addr)) {
         delete citizen;
         return false;
     }
@@ -240,34 +328,50 @@ bool CTaxRegister::Expense(const string &name, const string &addr, int amount) {
     return true;
 }
 
+/**
+ * Writes information about citizen to forwarded parameters.
+ * @param name  - citizen is searched by this parameter
+ * @param addr  - citizen is searched by this parameter
+ * @param account - here is written account number
+ * @param sumIncome - here is written sum of citizen's all incomes
+ * @param sumExpense - here is written sum of citizen's all expense
+ * @return false, if account doesn't exist. Else true.
+ */
 bool
 CTaxRegister::Audit(const string &name, const string &addr, string &account, int &sumIncome, int &sumExpense) const {
     auto * citizen = new Citizen(name, addr, "");
 
     auto low1 = lower_bound(nameAddrSorted.begin(),nameAddrSorted.end(), citizen, nameAddrComp);
-    if ((low1 == nameAddrSorted.end()) || ((*low1)->name != name || (*low1)->addr != addr)) {
+    if ((low1 == nameAddrSorted.end()) || ((*low1)->getName() != name || (*low1)->getAddr() != addr)) {
         delete citizen;
         return false;
     }
 
-    account = (*low1)->account;
+    account = (*low1)->getAccount();
     sumIncome = (*low1)->getSumIncome();
     sumExpense = (*low1)->getSumExpense();
     delete citizen;
     return true;
 }
 
-CIterator CTaxRegister::ListByName(void) const {
+/**
+ * Returns CIterator on list of Citizen sorted by Name and address (if names are equal) ascending.
+ * @return CIterator instance.
+ */
+CIterator CTaxRegister::ListByName() const {
     return CIterator(nameAddrSorted);
 }
 
+/**
+ * Destructor
+ */
 CTaxRegister::~CTaxRegister() {
     for (auto it: accountSorted)
         delete it;
 }
 
 #ifndef __PROGTEST__
-int main ( void )
+int main ()
 {
   string acct;
   int    sumIncome, sumExpense;
