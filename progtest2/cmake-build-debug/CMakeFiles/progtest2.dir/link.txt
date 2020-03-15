@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/progtest2.dir/sample/test.cpp.o  -o progtest2 
