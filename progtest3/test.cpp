@@ -155,7 +155,7 @@ CBigInt CBigInt::operator+(const CBigInt &num) const {      // fixme
 
 
 
-    auto biggerNum = ( num > *this ? num.number.begin() : this->number.begin());
+    auto biggerNum  = ( num > *this ? num.number.begin() : this->number.begin());
     auto smallerNum = ( num < *this ? num.number.begin() : this->number.begin());
     char add = 0;
 
@@ -254,10 +254,38 @@ bool CBigInt::operator<=(const CBigInt &cBigInt) const {
     if (!this->positiveSign && cBigInt.positiveSign)
         return true;
 
-    if (this->positiveSign && cBigInt.positiveSign && this->number <= cBigInt.number)
-        return true;
+    if (this->positiveSign && !cBigInt.positiveSign)
+        return false;
 
-    return !this->positiveSign && !cBigInt.positiveSign && this->number >= cBigInt.number;
+    if (this->positiveSign && cBigInt.positiveSign ){
+        if (this->number.size() == cBigInt.number.size()){
+            auto itCB = cBigInt.number.begin();
+            for (auto it : this->number){
+                if (it > *itCB)
+                    return false;
+                if (it < *itCB)
+                    return true;
+                itCB ++;
+            }
+            return true;
+        }
+        return this->number.size() < cBigInt.number.size();
+    }
+
+    if (!this->positiveSign && !cBigInt.positiveSign ){
+        if (this->number.size() == cBigInt.number.size()){
+            auto itCB = cBigInt.number.begin();
+            for (auto it : this->number){
+                if (it < *itCB)
+                    return false;
+                if (it > *itCB)
+                    return true;
+                itCB ++;
+            }
+            return true;
+        }
+        return this->number.size() > cBigInt.number.size();
+    }
 }
 
 bool CBigInt::operator<(const CBigInt &cBigInt) const {
@@ -341,10 +369,54 @@ bool operator!=(const char *l, const CBigInt &r) {
 }
 
 ostream &operator<<(ostream &os, const CBigInt &cBigInt) {      // todo
+    for (auto it = cBigInt.number.rbegin(); it !=  cBigInt.number.rend(); ++it){
+
+    }
+
     return os;
 }
 
-istream &operator>>(istream &is, const CBigInt &cBigInt) {      // todo
+istream &operator>>(istream &is,  CBigInt &cBigInt) {
+    string clearNum;
+    bool signPlace = true, skipWS = true, negativeSign = false, correctEntry = false;
+
+    while(!is.eof()){
+        char c = is.peek();
+
+        if (skipWS && (c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t' || c == '\v' )){
+            is.get();
+            continue;
+        }
+
+        if (signPlace && (c == '-')) {
+            negativeSign = true;
+            signPlace = false;
+            skipWS = false;
+            is.get();
+            continue;
+        }
+
+        if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5'
+            || c == '6' || c == '7' || c == '8' || c == '9'){
+            signPlace = false;
+            skipWS = false;
+            correctEntry = true;
+            clearNum += c;
+            is.get();
+
+            continue;
+        }
+        break;
+    }
+
+    if (!correctEntry)
+        is.setstate(ios::failbit);
+
+    if (negativeSign)
+        clearNum = "-" + clearNum;
+
+    cBigInt = clearNum.c_str();
+
     return is ;
 }
 
@@ -358,15 +430,28 @@ static bool equal ( const CBigInt & x, const char * val )
 }
 int main ( void )
 {
+    /* ============ MY TESTS ========== */
+    vector <char> test;
+    test.push_back(0);
+    test.push_back(1);
+    test.push_back(1);
+
+
+    vector <char> test2;
+    test2.push_back(1);
+    test2.push_back(1);
+
+//    assert(!(test2 > test));
+
     CBigInt c, d;
     c = 10;
     d = c;
     c += 10;
 
-    assert(!(c > d));
-    assert(!(d < c));
-    assert(!(d <= c));
-    assert(!(c >= d));
+    assert((c > d));
+    assert((d < c));
+    assert((d <= c));
+    assert((c >= d));
     assert(c == 20);
     assert(d == 10);
 
@@ -374,6 +459,41 @@ int main ( void )
     d = "445";
     assert(c == d);
 
+    CBigInt e,f;
+    istringstream myIs;
+
+    myIs . clear ();
+    myIs . str ( " 1234" );
+    assert ( myIs >> e );
+    f = "1234";
+    assert(e == f);
+
+    myIs . clear ();
+    myIs . str ( " 12 34" );
+    assert ( myIs >> e );
+    f = "12";
+    assert ( e == f );
+    myIs . clear ();
+    myIs . str ( "999z" );
+    assert ( myIs >> e );
+    f = "999";
+    assert ( e == f);
+    myIs . clear ();
+    myIs . str ( "abcd" );
+    assert ( ! ( myIs >> e ) );
+    myIs . clear ();
+    myIs . str ( "- 758" );
+    assert ( ! ( myIs >> e ) );
+    try
+    {
+        e = "-xyz";
+        assert ( "missing an exception" == NULL );
+    }
+    catch ( const invalid_argument & ex )
+    {
+    }
+
+    /* ============= GIVEN TESTS ============ */
   CBigInt a, b;
   istringstream is;
   a = 10;
