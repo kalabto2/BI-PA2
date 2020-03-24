@@ -24,6 +24,7 @@ class CBigInt
 private:
     bool positiveSign = true;
     vector<char> number;
+    string bcd () const;
   public:
     // default constructor
     CBigInt ();
@@ -88,7 +89,7 @@ private:
     // output operator <<
     friend ostream & operator << (ostream & os, const CBigInt & cBigInt);
     // input operator >>
-    friend istream & operator >> (istream & is, const CBigInt & cBigInt);
+    friend istream & operator >> (istream & is, CBigInt & cBigInt);
 };
 
 CBigInt::CBigInt() {
@@ -369,9 +370,8 @@ bool operator!=(const char *l, const CBigInt &r) {
 }
 
 ostream &operator<<(ostream &os, const CBigInt &cBigInt) {      // todo
-    for (auto it = cBigInt.number.rbegin(); it !=  cBigInt.number.rend(); ++it){
-
-    }
+    cout << "helekamo";
+    os << (cBigInt.positiveSign ? "" : "-") << cBigInt.bcd();
 
     return os;
 }
@@ -418,6 +418,45 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
     cBigInt = clearNum.c_str();
 
     return is ;
+}
+
+string CBigInt::bcd() const{
+    vector<int> decimalOrder;
+    decimalOrder.push_back(0);
+
+    for (auto rit = number.rbegin(); rit != number.rend(); rit++){
+        int x = *rit;
+
+        for (int i = 0; i < decimalOrder.size(); i++  ){
+            if (decimalOrder[i] >= 5)
+                decimalOrder[i] += 3;
+        }
+
+        if (decimalOrder.back() >= 8)
+            decimalOrder.push_back(0);
+
+        int shift = x;
+        for (int i = 0; i < decimalOrder.size(); i++ ){
+            decimalOrder[i] = (decimalOrder[i] << 1) + shift;
+            shift = 0;
+
+            if (decimalOrder[i] >= 16){
+                decimalOrder[i] -= 16;
+                shift = 1;
+            }
+        }
+
+    }
+
+    string res;
+
+    for (auto rit = decimalOrder.rbegin(); rit != decimalOrder.rend(); rit++){
+        res += to_string(*rit);
+    }
+
+    cout << res << "ss" << endl;
+
+    return res;
 }
 
 
