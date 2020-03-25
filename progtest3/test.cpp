@@ -19,6 +19,8 @@
 using namespace std;
 #endif /* __PROGTEST__ */
 
+const int BASE = 10;
+
 class CBigInt
 {
 private:
@@ -26,7 +28,7 @@ private:
     vector<char> number;
 
     string bcd () const;
-    bool gte ( const CBigInt & another) const;
+    bool gteAbs (const CBigInt & another) const;
     string bcdReverse (const string & decimal) const;
     void removeStartingZero ();
 public:
@@ -94,6 +96,13 @@ public:
     friend ostream & operator << (ostream & os, const CBigInt & cBigInt);
     // input operator >>
     friend istream & operator >> (istream & is, CBigInt & cBigInt);
+    void speedTest ()const{
+        string a = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+        string binary = bcdReverse(a);
+    }
+    string speedTestBcd ()const{
+        return bcd();
+    }
 };
 
 CBigInt::CBigInt() {
@@ -108,13 +117,20 @@ CBigInt::CBigInt(const int & num) {
         number.push_back(0);
 
     if (num < 0) {
+        if (num == -2147483648){
+            *this = "-2147483648";
+            return;
+        }
         positiveSign = false;
         tmp = -1 * num;
     }
 
     while (tmp > 0){
-        number.push_back(tmp % 2);
-        tmp >>= 1;
+        number.push_back(tmp % BASE);
+        if (BASE == 2)
+            tmp >>= 1;
+        else
+            tmp = tmp / BASE;
     }
 }
 
@@ -127,8 +143,9 @@ CBigInt::CBigInt(const char *num) {
                 (num[i] == ' ' || num[i] == '\f' || num[i] == '\n' || num[i] == '\r' || num[i] == '\t' || num[i] == '\v' ))
             continue;
 
-        if (signPlace && (num[i] == '-')) { // fixme mozna by se mel nastavit 'skipWS' na false ...
+        if (signPlace && (num[i] == '-')) {
             positiveSign = false;
+            skipWS = false;
             signPlace = false;
             continue;
         }
@@ -145,9 +162,7 @@ CBigInt::CBigInt(const char *num) {
         throw invalid_argument("Invalid argument");
     }
 
-    int i = 0;
-
-    string binary = bcdReverse(clearNum);
+    string binary = (BASE == 2 ? bcdReverse(clearNum) : clearNum);
 
     for (auto rit = binary.rbegin(); rit != binary.rend(); rit++){
         char tmp = *rit;
@@ -160,153 +175,99 @@ CBigInt::CBigInt(const char *num) {
     removeStartingZero();
     if (number.size() == 1 && number[0] == 0)
         positiveSign = true;
-    /*for (auto rit = clearNum.rbegin(); rit != clearNum.rend(); ++rit){      // fixme
-        char tmp = *rit;
-        string tmp2;
-        tmp2 += tmp;
-        int a = atoi(tmp2.c_str()) * pow(10, i);
-        if (!positiveSign)
-            a *= -1;
-
-        *this += a;
-        i++;
-    }*/
-
 }
 
 CBigInt CBigInt::operator+(const CBigInt &num) const {      // fixme
-    CBigInt tmp;
-    tmp.number.pop_back();
+    CBigInt result;
+    result.number.pop_back();
     bool substraction = false;
 
-    const CBigInt * bigger =  (gte(num) ? this : &num);
-    const CBigInt * smaller =  (!gte(num) ? this : &num);
+    const CBigInt * bigger =  (gteAbs(num) ? this : &num);
+    const CBigInt * smaller =  (!gteAbs(num) ? this : &num);
 
-    if (!this->positiveSign && !num.positiveSign)
-        tmp.positiveSign = false;
-
+    if (!this->positiveSign && !num.positiveSign) {
+        result.positiveSign = false;
+    }
     if (!this->positiveSign && num.positiveSign) {
-        tmp.positiveSign = !gte(num);
+        result.positiveSign = !gteAbs(num);
         substraction = true;
     }
-
     if (this->positiveSign && !num.positiveSign) {
-        tmp.positiveSign = gte(num);
+        result.positiveSign = gteAbs(num);
         substraction = true;
     }
-
 
     auto biggerIt  = bigger->number.begin();
     auto smallerIt = smaller->number.begin();
     char add = 0;
 
-    if(!substraction) {
-        for (; biggerIt != bigger->number.end(); biggerIt++) {
-            char sum;
-
-            sum = add + *biggerIt + (smallerIt == smaller->number.end() ? 0 : *smallerIt);
-
-            if (add == 1)
-                add = 0;
-
-            if (sum > 1) {
-                sum -= 2;
-                add = 1;
-            }
-
-            tmp.number.push_back(sum);
-
-            if (smallerIt != smaller->number.end())
-                smallerIt++;
-        }
-
-        if (add == 1)
-            tmp.number.push_back(1);
-    }
-    else{
-        for (; biggerIt != bigger->number.end(); biggerIt++) {
-            char sum;
-
-            sum = add + *biggerIt - (smallerIt == smaller->number.end() ? 0 : *smallerIt);
-
-            if (add == -1)
-                add = 0;
-
-            if (sum < 0) {
-                sum += 2;
-                add = -1;
-            }
-
-            tmp.number.push_back(sum);
-
-            if (smallerIt != smaller->number.end())
-                smallerIt++;
-        }
-    }
-
-    tmp.removeStartingZero();
-    if (tmp.number.size() == 1 && tmp.number[0] == 0)
-        tmp.positiveSign = true;
-    /*for (auto it1 : this->number){
+    for (; biggerIt != bigger->number.end(); biggerIt++) {
         char sum;
 
-        sum = it1 + *biggerIt + add;
+        sum = add + *biggerIt;
+        if (substraction)
+            sum -= (smallerIt == smaller->number.end() ? 0 : *smallerIt);
+        else
+            sum += (smallerIt == smaller->number.end() ? 0 : *smallerIt);
 
-        if (add == 1)
-            add = 0;
+        add = ((add == 1) || (add == -1) ? 0 : add);
 
-        if (sum > 1){
-            sum -= 2;
+        if (sum > BASE - 1) {
+            sum -= BASE;
             add = 1;
         }
-
-        tmp.number.push_back(sum);
-        biggerIt++;
-    }
-
-    for (biggerIt; biggerIt != num.number.end(); biggerIt++){
-        char sum = *biggerIt + add;
-
-        if (add == 1)
-            add = 0;
-
-        if (sum > 1){
-            sum -= 2;
-            add = 1;
+        if (sum < 0) {
+            sum += BASE;
+            add = -1;
         }
-        tmp.number.push_back(sum);
+
+        result.number.push_back(sum);
+
+        if (smallerIt != smaller->number.end())
+            smallerIt++;
     }
-*/
-    return tmp;
+
+    if (add > 0)
+        result.number.push_back(add);
+
+    result.removeStartingZero();
+    if (result.number.size() == 1 && result.number[0] == 0)
+        result.positiveSign = true;
+
+    return result;
 }
 
-CBigInt CBigInt::operator*(const CBigInt &num) const {
-    CBigInt res;
+CBigInt CBigInt::operator * (const CBigInt &num) const {
+    CBigInt result;
 
     if ((this->positiveSign && !num.positiveSign) || (!this->positiveSign && num.positiveSign))
-        res.positiveSign = false;
+        result.positiveSign = false;
 
     CBigInt tmp = *this;
     if (!this->positiveSign && !num.positiveSign)
         tmp.positiveSign = true;
 
+    /*for (auto it: num.number){
+        if (it == 1)
+            result += tmp;
+
+        tmp.number.insert(tmp.number.begin(), 0);
+    }*/
+
     for (auto it: num.number){
-        if (it == 0){
-            tmp.number.insert(tmp.number.begin(), 0);
-            continue;
+        for (int i = 0; i < it; i++){
+            result += tmp;
         }
-        if (it == 1) {
-            res += tmp;
-        }
+
         tmp.number.insert(tmp.number.begin(), 0);
     }
 
-    if (res.number.size() == 1 && res.number[0] == 0)
-        res.positiveSign = true;
 
-    return res;
+    if (result.number.size() == 1 && result.number[0] == 0)
+        result.positiveSign = true;
+
+    return result;
 }
-
 
 CBigInt CBigInt::operator+=(const CBigInt &num) {
     *this = *this + num;
@@ -330,7 +291,8 @@ bool CBigInt::operator<=(const CBigInt &cBigInt) const {
         return false;
 
     if (this->positiveSign && cBigInt.positiveSign ){
-        if (this->number.size() == cBigInt.number.size()){
+        return !gteAbs(cBigInt) || *this == cBigInt;
+        /*if (this->number.size() == cBigInt.number.size()){
             auto itCB = cBigInt.number.rbegin();
             for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
                 if (*it > *itCB)
@@ -341,11 +303,12 @@ bool CBigInt::operator<=(const CBigInt &cBigInt) const {
             }
             return true;
         }
-        return this->number.size() < cBigInt.number.size();
+        return this->number.size() < cBigInt.number.size();*/
     }
 
     if (!this->positiveSign && !cBigInt.positiveSign ){
-        if (this->number.size() == cBigInt.number.size()){
+        return gteAbs(cBigInt) || *this == cBigInt;
+        /*if (this->number.size() == cBigInt.number.size()){
             auto itCB = cBigInt.number.rbegin();
             for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
                 if (*it < *itCB)
@@ -356,8 +319,10 @@ bool CBigInt::operator<=(const CBigInt &cBigInt) const {
             }
             return true;
         }
-        return this->number.size() > cBigInt.number.size();
+        return this->number.size() > cBigInt.number.size();*/
     }
+
+    return false;
 }
 
 bool CBigInt::operator<(const CBigInt &cBigInt) const {
@@ -441,7 +406,16 @@ bool operator!=(const char *l, const CBigInt &r) {
 }
 
 ostream &operator<<(ostream &os, const CBigInt &cBigInt) {
-    os << (cBigInt.positiveSign ? "" : "-") << cBigInt.bcd();
+    if (BASE == 2)
+        os << (cBigInt.positiveSign ? "" : "-") << cBigInt.bcd();
+    else{
+        os << (cBigInt.positiveSign ? "" : "-");
+        for (auto it = cBigInt.number.rbegin(); it != cBigInt.number.rend(); it++) {
+            string c;
+            c += to_string(*it);
+            os << c;
+        }
+    }
     return os;
 }
 
@@ -472,7 +446,6 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
             correctEntry = true;
             clearNum += c;
             is.get();
-
             continue;
         }
         break;
@@ -498,21 +471,21 @@ string CBigInt::bcd() const{
     for (auto rit = number.rbegin(); rit != number.rend(); rit++){
         int x = *rit;
 
-        for (int i = 0; i < decimalOrder.size(); i++  ){
-            if (decimalOrder[i] >= 5)
-                decimalOrder[i] += 3;
+        for (int & i : decimalOrder){
+            if (i >= 5)
+                i += 3;
         }
 
         if (decimalOrder.back() >= 8)
             decimalOrder.push_back(0);
 
         int shift = x;
-        for (int i = 0; i < decimalOrder.size(); i++ ){
-            decimalOrder[i] = (decimalOrder[i] << 1) + shift;
+        for (int & i : decimalOrder){
+            i = (i << 1) + shift;
             shift = 0;
 
-            if (decimalOrder[i] >= 16){
-                decimalOrder[i] -= 16;
+            if (i >= 16){
+                i -= 16;
                 shift = 1;
             }
         }
@@ -526,7 +499,7 @@ string CBigInt::bcd() const{
     return res;
 }
 
-bool CBigInt::gte(const CBigInt &another) const {
+bool CBigInt::gteAbs(const CBigInt &another) const {
     if (this->number.size() == another.number.size()){
         auto itAnother = another.number.rbegin();
         for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
@@ -551,19 +524,19 @@ string CBigInt::bcdReverse(const string &decimal) const {
         decimalOrder.push_back(atoi(tmp2.c_str()));
     }
 
-    for (int _ = 0; _ < ((decimalOrder.size()*4)); _++){
+    for (unsigned long _ = 0; _ < ((decimalOrder.size()*4)); _++){
         bool shiftIn = false;
 
-        for (int i = 0; i < decimalOrder.size(); i++){
-            bool shiftOut (decimalOrder[i] % 2 == 1);
+        for (int & i : decimalOrder){
+            bool shiftOut (i % 2 == 1);
 
-            decimalOrder[i] = (decimalOrder[i] >> 1) + (shiftIn ? 8 : 0);
+            i = (i >> 1) + (shiftIn ? 8 : 0);
             shiftIn = shiftOut;
         }
 
-        for (int i = 0; i < decimalOrder.size(); i++){
-            if (decimalOrder[i] >= 8)
-                decimalOrder[i] -= 3;
+        for (int & i : decimalOrder){
+            if (i >= 8)
+                i -= 3;
         }
 
         res += (shiftIn ? "1" : "0");
@@ -582,8 +555,7 @@ void CBigInt::removeStartingZero() {
             number.pop_back();
             continue;
         }
-        if (*it == 1)
-            break;
+        break;
     }
 }
 
@@ -595,21 +567,9 @@ static bool equal ( const CBigInt & x, const char * val )
   oss << x;
   return oss . str () == val;
 }
-int main ( void )
+int main ( )
 {
     /* ============ MY TESTS ========== */
-    vector <char> test;
-    test.push_back(0);
-    test.push_back(1);
-    test.push_back(1);
-
-
-    vector <char> test2;
-    test2.push_back(1);
-    test2.push_back(1);
-
-//    assert(!(test2 > test));
-
     CBigInt c, d;
     c = 10;
     d = c;
@@ -626,98 +586,114 @@ int main ( void )
     d = "445";
     assert(c == d);
 
+    c = "55" + d;
+    assert(c == "500");
+
+    //c.speedTest();
+    c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    c.speedTestBcd();
+    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c = c * c;
+    //d = c + c;
+
+    string tmp;
     /* ============= GIVEN TESTS ============ */
-  CBigInt a, b;
-  istringstream is;
-  a = 10;
-  a += 20;
-  assert ( equal ( a, "30" ) );
-  a *= 5;
-  assert ( equal ( a, "150" ) );
-  b = a + "3";
-  assert ( equal ( b, "153" ) );
-  b = a * 7;
-  assert ( equal ( b, "1050" ) );
-  assert ( equal ( a, "150" ) );
 
-  a = 10;
-  a += -20;
-  assert ( equal ( a, "-10" ) );
-  a *= 5;
-  assert ( equal ( a, "-50" ) );
-  b = a + 73;
-  assert ( equal ( b, "23" ) );
-  b = a * -7;
-  assert ( equal ( b, "350" ) );
-  assert ( equal ( a, "-50" ) );
+    CBigInt a, b;
+    istringstream is;
+    a = 10;
+    a += 20;
+    assert ( equal ( a, "30" ) );
+    a *= 5;
+    assert ( equal ( a, "150" ) );
+    b = a + 3;
+    assert ( equal ( b, "153" ) );
+    b = a * 7;
+    assert ( equal ( b, "1050" ) );
+    assert ( equal ( a, "150" ) );
 
-  a = "12345678901234567890";
-  a += "-99999999999999999999";
-  assert ( equal ( a, "-87654321098765432109" ) );
-  a *= "54321987654321987654";
-  assert ( equal ( a, "-4761556948575111126880627366067073182286" ) );
-  a *= 0;
-  assert ( equal ( a, "0" ) );
-  a = 10;
-  b = a + "400";
-  assert ( equal ( b, "410" ) );
-  b = a * "15";
-  assert ( equal ( b, "150" ) );
-  assert ( equal ( a, "10" ) );
+    a = 10;
+    a += -20;
+    assert ( equal ( a, "-10" ) );
+    a *= 5;
+    assert ( equal ( a, "-50" ) );
+    b = a + 73;
+    assert ( equal ( b, "23" ) );
+    b = a * -7;
+    assert ( equal ( b, "350" ) );
+    assert ( equal ( a, "-50" ) );
 
-  is . clear ();
-  is . str ( " 1234" );
-  assert ( is >> b );
-  assert ( equal ( b, "1234" ) );
-  is . clear ();
-  is . str ( " 12 34" );
-  assert ( is >> b );
-  assert ( equal ( b, "12" ) );
-  is . clear ();
-  is . str ( "999z" );
-  assert ( is >> b );
-  assert ( equal ( b, "999" ) );
-  is . clear ();
-  is . str ( "abcd" );
-  assert ( ! ( is >> b ) );
-  is . clear ();
-  is . str ( "- 758" );
-  assert ( ! ( is >> b ) );
-  try
-  {
-    a = "-xyz";
-    assert ( "missing an exception" == NULL );
-  }
-  catch ( const invalid_argument & e )
-  {
-  }
+    a = "12345678901234567890";
+    a += "-99999999999999999999";
+    assert ( equal ( a, "-87654321098765432109" ) );
+    a *= "54321987654321987654";
+    assert ( equal ( a, "-4761556948575111126880627366067073182286" ) );
+    a *= 0;
+    assert ( equal ( a, "0" ) );
+    a = 10;
+    b = a + "400";
+    assert ( equal ( b, "410" ) );
+    b = a * "15";
+    assert ( equal ( b, "150" ) );
+    assert ( equal ( a, "10" ) );
+
+    is . clear ();
+    is . str ( " 1234" );
+    assert ( is >> b );
+    assert ( equal ( b, "1234" ) );
+    is . clear ();
+    is . str ( " 12 34" );
+    assert ( is >> b );
+    assert ( equal ( b, "12" ) );
+    is . clear ();
+    is . str ( "999z" );
+    assert ( is >> b );
+    assert ( equal ( b, "999" ) );
+    is . clear ();
+    is . str ( "abcd" );
+    assert ( ! ( is >> b ) );
+    is . clear ();
+    is . str ( "- 758" );
+    assert ( ! ( is >> b ) );
+    a = 42;
+    try
+    {
+        a = "-xyz";
+        assert ( "missing an exception" == NULL );
+    }
+    catch ( const invalid_argument & e )
+    {
+        assert ( equal ( a, "42" ) );
+    }
 
     a = "73786976294838206464";
-  assert ( a < "1361129467683753853853498429727072845824" );
-  assert ( a <= "1361129467683753853853498429727072845824" );
-  assert ( ! ( a > "1361129467683753853853498429727072845824" ) );
-  assert ( ! ( a >= "1361129467683753853853498429727072845824" ) );
-  assert ( ! ( a == "1361129467683753853853498429727072845824" ) );
-  assert ( a != "1361129467683753853853498429727072845824" );
-  assert ( ! ( a < "73786976294838206464" ) );
-  assert ( a <= "73786976294838206464" );
-  assert ( ! ( a > "73786976294838206464" ) );
-  assert ( a >= "73786976294838206464" );
-  assert ( a == "73786976294838206464" );
-  assert ( ! ( a != "73786976294838206464" ) );
-  assert ( a < "73786976294838206465" );
-  assert ( a <= "73786976294838206465" );
-  assert ( ! ( a > "73786976294838206465" ) );
-  assert ( ! ( a >= "73786976294838206465" ) );
-  assert ( ! ( a == "73786976294838206465" ) );
-  assert ( a != "73786976294838206465" );
-  a = "2147483648";
-  assert ( ! ( a < -2147483648 ) );
-  assert ( ! ( a <= -2147483648 ) );
-  assert ( a > -2147483648 );
-  assert ( a >= -2147483648 );
-  assert ( ! ( a == -2147483648 ) );
-  assert ( a != -2147483648 );
+    assert ( a < "1361129467683753853853498429727072845824" );
+    assert ( a <= "1361129467683753853853498429727072845824" );
+    assert ( ! ( a > "1361129467683753853853498429727072845824" ) );
+    assert ( ! ( a >= "1361129467683753853853498429727072845824" ) );
+    assert ( ! ( a == "1361129467683753853853498429727072845824" ) );
+    assert ( a != "1361129467683753853853498429727072845824" );
+    assert ( ! ( a < "73786976294838206464" ) );
+    assert ( a <= "73786976294838206464" );
+    assert ( ! ( a > "73786976294838206464" ) );
+    assert ( a >= "73786976294838206464" );
+    assert ( a == "73786976294838206464" );
+    assert ( ! ( a != "73786976294838206464" ) );
+    assert ( a < "73786976294838206465" );
+    assert ( a <= "73786976294838206465" );
+    assert ( ! ( a > "73786976294838206465" ) );
+    assert ( ! ( a >= "73786976294838206465" ) );
+    assert ( ! ( a == "73786976294838206465" ) );
+    assert ( a != "73786976294838206465" );
+    a = "2147483648";
+    assert ( ! ( a < -2147483648 ) );
+    assert ( ! ( a <= -2147483648 ) );
+    assert ( a > -2147483648 );
+    assert ( a >= -2147483648 );
+    assert ( ! ( a == -2147483648 ) );
+    assert ( a != -2147483648 );
 
   return 0;
 }
