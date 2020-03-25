@@ -24,8 +24,12 @@ class CBigInt
 private:
     bool positiveSign = true;
     vector<char> number;
+
     string bcd () const;
-  public:
+    bool gte ( const CBigInt & another) const;
+    string bcdReverse (const string & decimal) const;
+    void removeStartingZero ();
+public:
     // default constructor
     CBigInt ();
     // copying/assignment/destruction
@@ -99,8 +103,14 @@ CBigInt::CBigInt() {
 
 CBigInt::CBigInt(const int & num) {
     int tmp = num;
-    if (num < 0)
+
+    if (num == 0)
+        number.push_back(0);
+
+    if (num < 0) {
         positiveSign = false;
+        tmp = -1 * num;
+    }
 
     while (tmp > 0){
         number.push_back(tmp % 2);
@@ -136,56 +146,111 @@ CBigInt::CBigInt(const char *num) {
     }
 
     int i = 0;
-    for (auto rit = clearNum.rbegin(); rit != clearNum.rend(); ++rit){
+
+    string binary = bcdReverse(clearNum);
+
+    for (auto rit = binary.rbegin(); rit != binary.rend(); rit++){
+        char tmp = *rit;
+        string tmp2;
+        tmp2 += tmp;
+        int a = atoi(tmp2.c_str());
+        this->number.push_back(a);
+    }
+
+    removeStartingZero();
+    if (number.size() == 1 && number[0] == 0)
+        positiveSign = true;
+    /*for (auto rit = clearNum.rbegin(); rit != clearNum.rend(); ++rit){      // fixme
         char tmp = *rit;
         string tmp2;
         tmp2 += tmp;
         int a = atoi(tmp2.c_str()) * pow(10, i);
+        if (!positiveSign)
+            a *= -1;
+
         *this += a;
         i++;
-    }
+    }*/
 
 }
 
 CBigInt CBigInt::operator+(const CBigInt &num) const {      // fixme
     CBigInt tmp;
     tmp.number.pop_back();
+    bool substraction = false;
+
+    const CBigInt * bigger =  (gte(num) ? this : &num);
+    const CBigInt * smaller =  (!gte(num) ? this : &num);
 
     if (!this->positiveSign && !num.positiveSign)
         tmp.positiveSign = false;
 
-
-
-    auto biggerNum  = ( num > *this ? num.number.begin() : this->number.begin());
-    auto smallerNum = ( num < *this ? num.number.begin() : this->number.begin());
-    char add = 0;
-
-    for (; biggerNum != ( num > *this ? num.number.end() : this->number.end()); biggerNum++){
-        char sum;
-
-        sum = add + *biggerNum + (smallerNum == ( num < *this ? num.number.end() : this->number.end()) ? 0 : *smallerNum);
-
-        if (add == 1)
-            add = 0;
-
-        if (sum > 1){
-            sum -= 2;
-            add = 1;
-        }
-
-        tmp.number.push_back(sum);
-
-        if (smallerNum != ( num < *this ? num.number.end() : this->number.end()))
-            smallerNum++;
+    if (!this->positiveSign && num.positiveSign) {
+        tmp.positiveSign = !gte(num);
+        substraction = true;
     }
 
-    if (add == 1)
-        tmp.number.push_back(1);
+    if (this->positiveSign && !num.positiveSign) {
+        tmp.positiveSign = gte(num);
+        substraction = true;
+    }
 
+
+    auto biggerIt  = bigger->number.begin();
+    auto smallerIt = smaller->number.begin();
+    char add = 0;
+
+    if(!substraction) {
+        for (; biggerIt != bigger->number.end(); biggerIt++) {
+            char sum;
+
+            sum = add + *biggerIt + (smallerIt == smaller->number.end() ? 0 : *smallerIt);
+
+            if (add == 1)
+                add = 0;
+
+            if (sum > 1) {
+                sum -= 2;
+                add = 1;
+            }
+
+            tmp.number.push_back(sum);
+
+            if (smallerIt != smaller->number.end())
+                smallerIt++;
+        }
+
+        if (add == 1)
+            tmp.number.push_back(1);
+    }
+    else{
+        for (; biggerIt != bigger->number.end(); biggerIt++) {
+            char sum;
+
+            sum = add + *biggerIt - (smallerIt == smaller->number.end() ? 0 : *smallerIt);
+
+            if (add == -1)
+                add = 0;
+
+            if (sum < 0) {
+                sum += 2;
+                add = -1;
+            }
+
+            tmp.number.push_back(sum);
+
+            if (smallerIt != smaller->number.end())
+                smallerIt++;
+        }
+    }
+
+    tmp.removeStartingZero();
+    if (tmp.number.size() == 1 && tmp.number[0] == 0)
+        tmp.positiveSign = true;
     /*for (auto it1 : this->number){
         char sum;
 
-        sum = it1 + *biggerNum + add;
+        sum = it1 + *biggerIt + add;
 
         if (add == 1)
             add = 0;
@@ -196,11 +261,11 @@ CBigInt CBigInt::operator+(const CBigInt &num) const {      // fixme
         }
 
         tmp.number.push_back(sum);
-        biggerNum++;
+        biggerIt++;
     }
 
-    for (biggerNum; biggerNum != num.number.end(); biggerNum++){
-        char sum = *biggerNum + add;
+    for (biggerIt; biggerIt != num.number.end(); biggerIt++){
+        char sum = *biggerIt + add;
 
         if (add == 1)
             add = 0;
@@ -222,6 +287,9 @@ CBigInt CBigInt::operator*(const CBigInt &num) const {
         res.positiveSign = false;
 
     CBigInt tmp = *this;
+    if (!this->positiveSign && !num.positiveSign)
+        tmp.positiveSign = true;
+
     for (auto it: num.number){
         if (it == 0){
             tmp.number.insert(tmp.number.begin(), 0);
@@ -232,6 +300,9 @@ CBigInt CBigInt::operator*(const CBigInt &num) const {
         }
         tmp.number.insert(tmp.number.begin(), 0);
     }
+
+    if (res.number.size() == 1 && res.number[0] == 0)
+        res.positiveSign = true;
 
     return res;
 }
@@ -260,11 +331,11 @@ bool CBigInt::operator<=(const CBigInt &cBigInt) const {
 
     if (this->positiveSign && cBigInt.positiveSign ){
         if (this->number.size() == cBigInt.number.size()){
-            auto itCB = cBigInt.number.begin();
-            for (auto it : this->number){
-                if (it > *itCB)
+            auto itCB = cBigInt.number.rbegin();
+            for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
+                if (*it > *itCB)
                     return false;
-                if (it < *itCB)
+                if (*it < *itCB)
                     return true;
                 itCB ++;
             }
@@ -275,11 +346,11 @@ bool CBigInt::operator<=(const CBigInt &cBigInt) const {
 
     if (!this->positiveSign && !cBigInt.positiveSign ){
         if (this->number.size() == cBigInt.number.size()){
-            auto itCB = cBigInt.number.begin();
-            for (auto it : this->number){
-                if (it < *itCB)
+            auto itCB = cBigInt.number.rbegin();
+            for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
+                if (*it < *itCB)
                     return false;
-                if (it > *itCB)
+                if (*it > *itCB)
                     return true;
                 itCB ++;
             }
@@ -369,10 +440,8 @@ bool operator!=(const char *l, const CBigInt &r) {
     return r != l;
 }
 
-ostream &operator<<(ostream &os, const CBigInt &cBigInt) {      // todo
-    cout << "helekamo";
+ostream &operator<<(ostream &os, const CBigInt &cBigInt) {
     os << (cBigInt.positiveSign ? "" : "-") << cBigInt.bcd();
-
     return os;
 }
 
@@ -409,8 +478,10 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
         break;
     }
 
-    if (!correctEntry)
+    if (!correctEntry) {
         is.setstate(ios::failbit);
+        return is;
+    }
 
     if (negativeSign)
         clearNum = "-" + clearNum;
@@ -445,18 +516,75 @@ string CBigInt::bcd() const{
                 shift = 1;
             }
         }
-
     }
 
     string res;
-
     for (auto rit = decimalOrder.rbegin(); rit != decimalOrder.rend(); rit++){
         res += to_string(*rit);
     }
 
-    cout << res << "ss" << endl;
-
     return res;
+}
+
+bool CBigInt::gte(const CBigInt &another) const {
+    if (this->number.size() == another.number.size()){
+        auto itAnother = another.number.rbegin();
+        for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
+            if (*it < *itAnother)
+                return false;
+            if (*it > *itAnother)
+                return true;
+            itAnother ++;
+        }
+        return true;
+    }
+    return this->number.size() > another.number.size();}
+
+string CBigInt::bcdReverse(const string &decimal) const {
+    vector<int> decimalOrder;
+    string res;
+
+    for (auto it : decimal) {
+        char tmp = it;
+        string tmp2;
+        tmp2 += tmp;
+        decimalOrder.push_back(atoi(tmp2.c_str()));
+    }
+
+    for (int _ = 0; _ < ((decimalOrder.size()*4)); _++){
+        bool shiftIn = false;
+
+        for (int i = 0; i < decimalOrder.size(); i++){
+            bool shiftOut (decimalOrder[i] % 2 == 1);
+
+            decimalOrder[i] = (decimalOrder[i] >> 1) + (shiftIn ? 8 : 0);
+            shiftIn = shiftOut;
+        }
+
+        for (int i = 0; i < decimalOrder.size(); i++){
+            if (decimalOrder[i] >= 8)
+                decimalOrder[i] -= 3;
+        }
+
+        res += (shiftIn ? "1" : "0");
+    }
+
+    reverse(res.begin(), res.end());
+    return res;
+}
+
+void CBigInt::removeStartingZero() {
+    for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
+        if (number.size() == 1)
+            return;
+
+        if (*it == 0){
+            number.pop_back();
+            continue;
+        }
+        if (*it == 1)
+            break;
+    }
 }
 
 
@@ -497,40 +625,6 @@ int main ( void )
     c = 445;
     d = "445";
     assert(c == d);
-
-    CBigInt e,f;
-    istringstream myIs;
-
-    myIs . clear ();
-    myIs . str ( " 1234" );
-    assert ( myIs >> e );
-    f = "1234";
-    assert(e == f);
-
-    myIs . clear ();
-    myIs . str ( " 12 34" );
-    assert ( myIs >> e );
-    f = "12";
-    assert ( e == f );
-    myIs . clear ();
-    myIs . str ( "999z" );
-    assert ( myIs >> e );
-    f = "999";
-    assert ( e == f);
-    myIs . clear ();
-    myIs . str ( "abcd" );
-    assert ( ! ( myIs >> e ) );
-    myIs . clear ();
-    myIs . str ( "- 758" );
-    assert ( ! ( myIs >> e ) );
-    try
-    {
-        e = "-xyz";
-        assert ( "missing an exception" == NULL );
-    }
-    catch ( const invalid_argument & ex )
-    {
-    }
 
     /* ============= GIVEN TESTS ============ */
   CBigInt a, b;
