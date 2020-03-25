@@ -1,4 +1,4 @@
-#Velká čísla
+# Velká čísla
 **Termín odevzdání**:			05.04.2020 23:59:59	946730.086 sec\
 **Pozdní odevzdání s penalizací**:	30.06.2020 23:59:59 (Penále za pozdní odevzdání: 100.0000 %)\
 **Hodnocení**:				5.5000\
@@ -15,31 +15,31 @@ Celá čísla typu int, long long int, ... mají fixní velikost, tedy omezený 
 
 Realizovaná třída tedy musí splňovat následující rozhraní:
 
-#####konstruktor implicitní
+##### konstruktor implicitní
 inicializuje objekt, který bude reprezentovat hodnotu 0,
 
-#####konstruktor s parametrem celého čísla int
+##### konstruktor s parametrem celého čísla int
 inicializuje objekt, reprezentující toto číslo,
 
-#####konstruktor s parametrem řetězce (ASCIIZ)
+##### konstruktor s parametrem řetězce (ASCIIZ)
 inicializuje objekt s hodnotou, jejíž desítková reprezentace je v předávaném řetězci. Pokud je zadaný řetězec neplatný (neobsahuje platné desítkové číslo), konstruktor vyhodí výjimku invalid_argument. Výjimka je součástí standardní knihovny, její deklarace je v hlavičkovém souboru stdexcept. Při vyhazování výjimky invalid_argument lze jejímu konstruktoru předat řetězec s podrobnějším popisem příčiny chyby, pro tuto úlohu není obsah tohoto řetězce omezen,
 
-#####kopírující konstruktor
+##### kopírující konstruktor
 bude implementován, pokud to vnitřní struktury Vaší třídy vyžadují,
 
-#####destruktor
+##### destruktor
 bude implementován, pokud to vnitřní struktury Vaší třídy vyžadují,
 
-#####přetížený operátor =
+##### přetížený operátor =
 bude umožňovat přiřazení z celého čísla, řetězce a jiné instance CBigInt,
 
-#####operátor <<
+##### operátor <<
 bude umožňovat výstup objektu do C++ streamu (desítková reprezentace, bez zbytečných úvodních nul).
 
-#####operátor >>
+##### operátor >>
 bude umožňovat načtení ze vstupního streamu (vstup bude v desítkovém zápisu). Čtení se bude chovat stejně jako načítání celých čísel ve standardní knihovně, tedy zastaví na prvním znaku, který již nemůže být platnou součástí čteného čísla.
 
-#####operátor +
+##### operátor +
 umožní sečíst dvě čísla typu:
 * CBigInt + CBigInt,
 * CBigInt + int,
@@ -47,23 +47,23 @@ umožní sečíst dvě čísla typu:
 * int + CBigInt a
 * ASCIIZ řetězec + CBigInt.
 
-#####operátor +=
+##### operátor +=
 umožní k číslu CBigInt přičíst jiné číslo CBigInt, celé číslo nebo číslo v podobě ASCIIZ řetězce.
 
-#####operátor *
+##### operátor *
 umožní vynásobit dvě čísla ve stejných kombinacích zápisu jako operátor pro sčítání.
 
-#####operátor *=
+##### operátor *=
 umožní číslo typu CBigInt přenásobit jiným číslem CBigInt, celým číslem nebo číslem v podobě ASCIIZ řetězce.
 
-#####relační operátory (< <=, > >=, == a !=)
+##### relační operátory (< <=, > >=, == a !=)
 umožní porovnávat velká čísla mezi sebou, porovnání si opět musí poradit se všemi kombinacemi jako sčítání a násobení.
 
 Odevzdávejte zdrojový soubor, který obsahuje Vaší implementaci třídy CBigInt. V odevzdávaném souboru nenechávejte vkládání hlavičkových souborů, Vaše testovací funkce a funkci main. Pokud v souboru chcete ponechat main nebo vkládání hlavičkových souborů, vložte je do bloku podmíněného překladu.
 
 V tomto příkladu není poskytnutý předpis pro požadované rozhraní třídy. Z textového popisu, ukázky použití níže a znalostí přetěžování operátorů byste měli být schopni toto rozhraní vymyslet.
 
-##Nápověda
+## Nápověda
 * Testovací prostředí kontroluje hodnoty ve Vašich objektech tím, že si je zašle do výstupního proudu a kontroluje jejich textovou podobu. Dokud Vám nebude správně fungovat výstup, budou všechny testy negativní.
 * Operátor pro výstup implementujte správně -- neposílejte data na cout, posílejte je do předaného výstupního proudu. Za výstupem čísla do proudu nepřidávejte odřádkování ani jiné bílé znaky.
 * Pokud Vám program nejde zkompilovat, ujistěte se, že máte správně přetížené operátory. Zejména si zkontrolujte kvalifikátory const.
@@ -76,7 +76,7 @@ V tomto příkladu není poskytnutý předpis pro požadované rozhraní třídy
 * Při implementaci můžete použít std::vector a std::string.
 * Instance CBigInt se při provádění aritmetických operací často kopírují (či přesouvají). Pokud se rozhodnete, že budete ve vlastní režii implementovat dynamické alokování prostoru pro ukládaná čísla, budete muset implementovat vlastní kopírující konstruktor, operátor = a destruktor (případně i jejich přesouvací varianty). Takový postup je možný, ale doporučujeme se mu vyhnout. Využijte skládání objektů tak, aby postačovaly kompilátorem automaticky generované konstruktory/operátory=/destruktor (rule of zero).
 * Funkční řešení této domácí úlohy může být použito pro code review (řešení musí projít povinnými a nepovinnými testy na 100%, nemusí projít bonusovými testy).
-##Dodatek, 23.3.2020:
+## Dodatek, 23.3.2020:
 * Instance CBigInt lze vytvářet i z řetězců se zbytečnými úvodními nulami (např. CBigInt ( "0012122" )). Takové řetězce považujte za platná desítková čísla.
 * Vstupní a výstupní konverze vždy pracuje jen s desítkovými čísly (nezabývá se manipulátory hex, oct, ...).
 * Zvládnutí druhého bonusu je v této úloze poměrně obtížné. Je potřeba zvolit vhodnou reprezentaci čísel a implementovat rychlý algoritmus násobení. Pokud zvolíte reprezentaci jako pole hodnot (např. vector<int>) a do prvků pole budete ukládat hodnoty od 0 do 1000000000 (modulo 109, de facto budete čísla reprezentovat v číselné soustavě o základu 1 miliarda), nebude Váš program dostatečně rychlý pro druhý bonusový test. Tato reprezentace si vynucuje časté operace dělení/modulo 1 miliarda, které celý výpočet významně zpomalí. Ke zvládnutí druhého bonusového testu vede např. následující:
