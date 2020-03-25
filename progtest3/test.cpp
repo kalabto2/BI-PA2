@@ -19,13 +19,17 @@
 using namespace std;
 #endif /* __PROGTEST__ */
 
-const int BASE = 10;
+const int BASE = 10;            /// can be value 10 or 2
 
+/**
+ * Represents integer with unlimited size.
+ * Inside class is number represented as vector of single binary / decimal ciphers
+ */
 class CBigInt
 {
 private:
-    bool positiveSign = true;
-    vector<char> number;
+    bool positiveSign = true;       /// sign of number. Zero has always positive sign
+    vector<char> number;            /// binary // decimal ciphers ...
 
     string bcd () const;
     bool gteAbs (const CBigInt & another) const;
@@ -34,75 +38,46 @@ private:
 public:
     // default constructor
     CBigInt ();
-    // copying/assignment/destruction
-        //CBigInt (const CBigInt & cBigInt);
     // int constructor
     CBigInt (const int & num);
     // string constructor
     CBigInt (const char * num);
     // operator +, any combination {CBigInt/int/string} + {CBigInt/int/string}
     CBigInt operator + (const CBigInt & num) const;
-        //CBigInt operator + (int num) const;
-        //CBigInt operator + (string num) const;
     friend CBigInt operator + (int l, CBigInt & r);
     friend CBigInt operator + (const char * l, CBigInt & r);
     // operator *, any combination {CBigInt/int/string} * {CBigInt/int/string}
     CBigInt operator * (const CBigInt & num) const;
-        //CBigInt operator * (int num) const;
-        //CBigInt operator * (string num) const;
     friend CBigInt operator * (int l, CBigInt & r);
     friend CBigInt operator * (const char * l, CBigInt & r);
     // operator +=, any of {CBigInt/int/string}
     CBigInt operator += (const CBigInt & num);
-        //CBigInt operator += (int num);
-        //CBigInt operator += (string num);
     // operator *=, any of {CBigInt/int/string}
     CBigInt operator *= (const CBigInt & num);
-        //CBigInt operator *= (int num);
-        //CBigInt operator *= (string num);
     // comparison operators, any combination {CBigInt/int/string} {<,<=,>,>=,==,!=} {CBigInt/int/string}
     bool operator == (const CBigInt & cBigInt) const;
-        //bool operator == (const int & l) const;
-        //bool operator == (const char * l) const;
     friend bool operator == (int l, const CBigInt & r);
     friend bool operator == (const char * l, const CBigInt & r);
     bool operator <= (const CBigInt & cBigInt) const;
-        //bool operator <= (const int & l) const;
-        //bool operator <= (const char * l) const;
     friend bool operator <= (int l, const CBigInt & r);
     friend bool operator <= (const char * l, const CBigInt & r);
     bool operator < (const CBigInt & cBigInt) const;
-        //bool operator < (const int & l) const;
-        //bool operator < (const char * l) const;
     friend bool operator < (int l, const CBigInt & r);
     friend bool operator < (const char * l, const CBigInt & r);
     bool operator >= (const CBigInt & cBigInt) const;
-        //bool operator >= (const int & l) const;
-        //bool operator >= (const char * l) const;
     friend bool operator >= (int l, const CBigInt & r);
     friend bool operator >= (const char * l, const CBigInt & r);
     bool operator > (const CBigInt & cBigInt) const;
-        //bool operator > (const int & l) const;
-        //bool operator > (const char * l) const;
     friend bool operator > (int l, const CBigInt & r);
     friend bool operator > (const char * l, const CBigInt & r);
     bool operator != (const CBigInt & cBigInt) const;
-        //bool operator != (const int & l) const;
-        //bool operator != (const char * l) const;
     friend bool operator != (int l, const  CBigInt & r);
     friend bool operator != (const char * l, const CBigInt & r);
-
     // output operator <<
     friend ostream & operator << (ostream & os, const CBigInt & cBigInt);
     // input operator >>
     friend istream & operator >> (istream & is, CBigInt & cBigInt);
-    void speedTest ()const{
-        string a = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
-        string binary = bcdReverse(a);
-    }
-    string speedTestBcd ()const{
-        return bcd();
-    }
+
 };
 
 CBigInt::CBigInt() {
@@ -110,6 +85,11 @@ CBigInt::CBigInt() {
     number.push_back(0);
 }
 
+/**
+ * Constructs CBigInt from int.
+ * When storing as binary, needs to be converted from decimal to binary
+ * @param num - decimal value in string
+ */
 CBigInt::CBigInt(const int & num) {
     int tmp = num;
 
@@ -134,6 +114,12 @@ CBigInt::CBigInt(const int & num) {
     }
 }
 
+/**
+ * Constructs CBigInt from string.
+ * If error occurs in string, throws an exception.
+ * When storing as binary, needs to be converted from decimal to binary
+ * @param num - decimal value in string
+ */
 CBigInt::CBigInt(const char *num) {
     string clearNum;
     bool signPlace = true, skipWS = true;
@@ -177,41 +163,49 @@ CBigInt::CBigInt(const char *num) {
         positiveSign = true;
 }
 
-CBigInt CBigInt::operator+(const CBigInt &num) const {      // fixme
+/**
+ * Sums 2 numbers
+ * @param num - 2. number
+ * @return result of sum
+ */
+CBigInt CBigInt::operator+(const CBigInt &num) const {
     CBigInt result;
     result.number.pop_back();
-    bool substraction = false;
+    bool subtraction = false;
 
     const CBigInt * bigger =  (gteAbs(num) ? this : &num);
     const CBigInt * smaller =  (!gteAbs(num) ? this : &num);
 
+    /// handles sign
     if (!this->positiveSign && !num.positiveSign) {
         result.positiveSign = false;
     }
     if (!this->positiveSign && num.positiveSign) {
         result.positiveSign = !gteAbs(num);
-        substraction = true;
+        subtraction = true;
     }
     if (this->positiveSign && !num.positiveSign) {
         result.positiveSign = gteAbs(num);
-        substraction = true;
+        subtraction = true;
     }
 
     auto biggerIt  = bigger->number.begin();
     auto smallerIt = smaller->number.begin();
     char add = 0;
 
+    /// classical school addition / subtraction
     for (; biggerIt != bigger->number.end(); biggerIt++) {
         char sum;
 
         sum = add + *biggerIt;
-        if (substraction)
+        if (subtraction)
             sum -= (smallerIt == smaller->number.end() ? 0 : *smallerIt);
         else
             sum += (smallerIt == smaller->number.end() ? 0 : *smallerIt);
 
         add = ((add == 1) || (add == -1) ? 0 : add);
 
+        /// overflow
         if (sum > BASE - 1) {
             sum -= BASE;
             add = 1;
@@ -237,6 +231,11 @@ CBigInt CBigInt::operator+(const CBigInt &num) const {      // fixme
     return result;
 }
 
+/**
+ * Multiples 2 numbers. this number and another
+ * @param num - 2. number for multiplication
+ * @return result of multiplication
+ */
 CBigInt CBigInt::operator * (const CBigInt &num) const {
     CBigInt result;
 
@@ -247,13 +246,6 @@ CBigInt CBigInt::operator * (const CBigInt &num) const {
     if (!this->positiveSign && !num.positiveSign)
         tmp.positiveSign = true;
 
-    /*for (auto it: num.number){
-        if (it == 1)
-            result += tmp;
-
-        tmp.number.insert(tmp.number.begin(), 0);
-    }*/
-
     for (auto it: num.number){
         for (int i = 0; i < it; i++){
             result += tmp;
@@ -262,13 +254,13 @@ CBigInt CBigInt::operator * (const CBigInt &num) const {
         tmp.number.insert(tmp.number.begin(), 0);
     }
 
-
     if (result.number.size() == 1 && result.number[0] == 0)
         result.positiveSign = true;
 
     return result;
 }
 
+/// BOOOORING
 CBigInt CBigInt::operator+=(const CBigInt &num) {
     *this = *this + num;
     return *this;
@@ -405,6 +397,12 @@ bool operator!=(const char *l, const CBigInt &r) {
     return r != l;
 }
 
+/**
+ * Writes number in decimal. If is stored inside class in binary, needs to be converted
+ * @param os - stream, where number will be printed
+ * @param cBigInt - number to be printed
+ * @return os - original stream
+ */
 ostream &operator<<(ostream &os, const CBigInt &cBigInt) {
     if (BASE == 2)
         os << (cBigInt.positiveSign ? "" : "-") << cBigInt.bcd();
@@ -419,6 +417,14 @@ ostream &operator<<(ostream &os, const CBigInt &cBigInt) {
     return os;
 }
 
+/**
+ * Loads decimal number as string from stream and stores to @class CBigInt.
+ * Sets failbit when error occurs - number couldn't load (on input just "-" or "abc").
+ * When bad character occurs, stops loading.
+ * @param is -
+ * @param cBigInt
+ * @return is - original stream
+ */
 istream &operator>>(istream &is,  CBigInt &cBigInt) {
     string clearNum;
     bool signPlace = true, skipWS = true, negativeSign = false, correctEntry = false;
@@ -430,7 +436,6 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
             is.get();
             continue;
         }
-
         if (signPlace && (c == '-')) {
             negativeSign = true;
             signPlace = false;
@@ -438,7 +443,6 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
             is.get();
             continue;
         }
-
         if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5'
             || c == '6' || c == '7' || c == '8' || c == '9'){
             signPlace = false;
@@ -455,7 +459,6 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
         is.setstate(ios::failbit);
         return is;
     }
-
     if (negativeSign)
         clearNum = "-" + clearNum;
 
@@ -464,7 +467,7 @@ istream &operator>>(istream &is,  CBigInt &cBigInt) {
     return is ;
 }
 
-string CBigInt::bcd() const{
+string CBigInt::bcd() const{            // fixme -- fucking slow
     vector<int> decimalOrder;
     decimalOrder.push_back(0);
 
@@ -499,6 +502,11 @@ string CBigInt::bcd() const{
     return res;
 }
 
+/**
+ * Decides, if is this absolute value of number greater then or equal.
+ * @param another - 2. number to be compared
+ * @return true, if bigger abs. val. Else false
+ */
 bool CBigInt::gteAbs(const CBigInt &another) const {
     if (this->number.size() == another.number.size()){
         auto itAnother = another.number.rbegin();
@@ -513,7 +521,7 @@ bool CBigInt::gteAbs(const CBigInt &another) const {
     }
     return this->number.size() > another.number.size();}
 
-string CBigInt::bcdReverse(const string &decimal) const {
+string CBigInt::bcdReverse(const string &decimal) const {       // fixme -- fucking slow
     vector<int> decimalOrder;
     string res;
 
@@ -546,6 +554,9 @@ string CBigInt::bcdReverse(const string &decimal) const {
     return res;
 }
 
+/**
+ * Removes useless strating zeros in numbers abs. value
+ */
 void CBigInt::removeStartingZero() {
     for (auto it = this->number.rbegin(); it != this->number.rend(); it++){
         if (number.size() == 1)
@@ -569,36 +580,6 @@ static bool equal ( const CBigInt & x, const char * val )
 }
 int main ( )
 {
-    /* ============ MY TESTS ========== */
-    CBigInt c, d;
-    c = 10;
-    d = c;
-    c += 10;
-
-    assert((c > d));
-    assert((d < c));
-    assert((d <= c));
-    assert((c >= d));
-    assert(c == 20);
-    assert(d == 10);
-
-    c = 445;
-    d = "445";
-    assert(c == d);
-
-    c = "55" + d;
-    assert(c == "500");
-
-    //c.speedTest();
-    c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
-    c.speedTestBcd();
-    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
-    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
-    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
-    //c = c * c;
-    //d = c + c;
-
-    string tmp;
     /* ============= GIVEN TESTS ============ */
 
     CBigInt a, b;
@@ -694,6 +675,36 @@ int main ( )
     assert ( a >= -2147483648 );
     assert ( ! ( a == -2147483648 ) );
     assert ( a != -2147483648 );
+
+    /* ============ MY TESTS ========== */
+
+    CBigInt c, d;
+    c = 10;
+    d = c;
+    c += 10;
+
+    assert((c > d));
+    assert((d < c));
+    assert((d <= c));
+    assert((c >= d));
+    assert(c == 20);
+    assert(d == 10);
+
+    c = 445;
+    d = "445";
+    assert(c == d);
+
+    c = "55" + d;
+    assert(c == "500");
+
+    //c.speedTest();
+    // c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c.speedTestBcd();
+    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    //c = c * c;
+    //d = c + c;
 
   return 0;
 }
