@@ -82,10 +82,7 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/tom/FIT/PA2/progtest/progtest4/mySet.cpp">
-			<Option target="progtest4"/>
-		</Unit>
-		<Unit filename="/home/tom/FIT/PA2/progtest/progtest4/mySet.h">
+		<Unit filename="/home/tom/FIT/PA2/progtest/progtest4/test.cpp">
 			<Option target="progtest4"/>
 		</Unit>
 		<Unit filename="/home/tom/FIT/PA2/progtest/progtest4/CMakeLists.txt">

@@ -6,15 +6,23 @@
 
 #IncludeRegexTransform: 
 
-/home/tom/FIT/PA2/progtest/progtest4/mySet.cpp
-iostream
--
+/home/tom/FIT/PA2/progtest/progtest4/test.cpp
 cstring
+-
+cstdlib
+-
+cstdio
 -
 cassert
 -
-mySet.h
-/home/tom/FIT/PA2/progtest/progtest4/mySet.h
-
-/home/tom/FIT/PA2/progtest/progtest4/mySet.h
+cctype
+-
+cmath
+-
+iostream
+-
+iomanip
+-
+sstream
+-
 

@@ -57,27 +57,27 @@ include CMakeFiles/progtest4.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/progtest4.dir/flags.make
 
-CMakeFiles/progtest4.dir/mySet.cpp.o: CMakeFiles/progtest4.dir/flags.make
-CMakeFiles/progtest4.dir/mySet.cpp.o: ../mySet.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/tom/FIT/PA2/progtest/progtest4/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/progtest4.dir/mySet.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/progtest4.dir/mySet.cpp.o -c /home/tom/FIT/PA2/progtest/progtest4/mySet.cpp
+CMakeFiles/progtest4.dir/test.cpp.o: CMakeFiles/progtest4.dir/flags.make
+CMakeFiles/progtest4.dir/test.cpp.o: ../test.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/tom/FIT/PA2/progtest/progtest4/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/progtest4.dir/test.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/progtest4.dir/test.cpp.o -c /home/tom/FIT/PA2/progtest/progtest4/test.cpp
 
-CMakeFiles/progtest4.dir/mySet.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/progtest4.dir/mySet.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/tom/FIT/PA2/progtest/progtest4/mySet.cpp > CMakeFiles/progtest4.dir/mySet.cpp.i
+CMakeFiles/progtest4.dir/test.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/progtest4.dir/test.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/tom/FIT/PA2/progtest/progtest4/test.cpp > CMakeFiles/progtest4.dir/test.cpp.i
 
-CMakeFiles/progtest4.dir/mySet.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/progtest4.dir/mySet.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/tom/FIT/PA2/progtest/progtest4/mySet.cpp -o CMakeFiles/progtest4.dir/mySet.cpp.s
+CMakeFiles/progtest4.dir/test.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/progtest4.dir/test.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/tom/FIT/PA2/progtest/progtest4/test.cpp -o CMakeFiles/progtest4.dir/test.cpp.s
 
 # Object files for target progtest4
 progtest4_OBJECTS = \
-"CMakeFiles/progtest4.dir/mySet.cpp.o"
+"CMakeFiles/progtest4.dir/test.cpp.o"
 
 # External object files for target progtest4
 progtest4_EXTERNAL_OBJECTS =
 
-progtest4: CMakeFiles/progtest4.dir/mySet.cpp.o
+progtest4: CMakeFiles/progtest4.dir/test.cpp.o
 progtest4: CMakeFiles/progtest4.dir/build.make
 progtest4: CMakeFiles/progtest4.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/tom/FIT/PA2/progtest/progtest4/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable progtest4"

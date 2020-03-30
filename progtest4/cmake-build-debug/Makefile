@@ -123,32 +123,32 @@ progtest4/fast:
 	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/build
 .PHONY : progtest4/fast
 
-mySet.o: mySet.cpp.o
+test.o: test.cpp.o
 
-.PHONY : mySet.o
+.PHONY : test.o
 
 # target to build an object file
-mySet.cpp.o:
-	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/mySet.cpp.o
-.PHONY : mySet.cpp.o
+test.cpp.o:
+	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/test.cpp.o
+.PHONY : test.cpp.o
 
-mySet.i: mySet.cpp.i
+test.i: test.cpp.i
 
-.PHONY : mySet.i
+.PHONY : test.i
 
 # target to preprocess a source file
-mySet.cpp.i:
-	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/mySet.cpp.i
-.PHONY : mySet.cpp.i
+test.cpp.i:
+	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/test.cpp.i
+.PHONY : test.cpp.i
 
-mySet.s: mySet.cpp.s
+test.s: test.cpp.s
 
-.PHONY : mySet.s
+.PHONY : test.s
 
 # target to generate assembly for a file
-mySet.cpp.s:
-	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/mySet.cpp.s
-.PHONY : mySet.cpp.s
+test.cpp.s:
+	$(MAKE) -f CMakeFiles/progtest4.dir/build.make CMakeFiles/progtest4.dir/test.cpp.s
+.PHONY : test.cpp.s
 
 # Help Target
 help:
@@ -159,9 +159,9 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... progtest4"
 	@echo "... edit_cache"
-	@echo "... mySet.o"
-	@echo "... mySet.i"
-	@echo "... mySet.s"
+	@echo "... test.o"
+	@echo "... test.i"
+	@echo "... test.s"
 .PHONY : help
 
 

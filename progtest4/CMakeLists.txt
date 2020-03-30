@@ -3,4 +3,4 @@ project(progtest4)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(progtest4 mySet.cpp)
+add_executable(progtest4 test.cpp)

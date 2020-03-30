@@ -8,97 +8,71 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <vector>
 
 using namespace std;
 #endif /* __PROGTEST__ */
 
-class CAccount{
-    const char * id;
-    int balance;
-    friend int cmpfunc (const void * a, const void * b);
+template <typename T>
+class myVector {
+    T * items;
+    int size;
 
+    void resize ();
 public:
-    unsigned Balance();
-    CAccount (const char * c, int initBal);
-};
-
-int cmpfunc (const void * a, const void * b) {
-    int lLen = sizeof(((class CAccount *)a)->id);
-    int rLen = sizeof(((class CAccount *)b)->id);
-
-    if (lLen < rLen )
-        return -1;
-    if(lLen > rLen)
-        return 1;
-
-    for (int i = 0; i < lLen; i++){
-        if(((class CAccount *)a)->id[i] < ((class CAccount *)b)->id[i])
-            return -1;
-        if(((class CAccount *)a)->id[i] > ((class CAccount *)b)->id[i])
-            return 1;
-    }
-
-    return 0;
-}
-
-unsigned CAccount::Balance() {
-    return balance;
-}
-
-CAccount::CAccount(const char *c, int initBal) : balance(initBal), id(c) {
-
-}
-/*
-class AccountSet{
-    CAccount ** set;
-    int length;
     int occupied;
-
-    void resize();
-public:
-    AccountSet();
-    ~AccountSet();
-    bool add(CAccount * account);
+    myVector ();
+    ~ myVector();
+    bool push_back (T item);
+    void clear();
+    T operator [](int index);
 };
 
-AccountSet::AccountSet() : length(100), occupied(0), set(nullptr) {
-    set = new CAccount*[100];
-}
 
-AccountSet::~AccountSet() {
-    delete [] set;
-}
+template <typename T>
+class mySet {
+    T * items;
+    int size;
 
-bool AccountSet::add(CAccount * account) {
-    if (occupied == length)
-        resize();
+    void resize ();
+    bool idExist (const char * id);
+public:
+    int occupied;
+    mySet ();
+    ~ mySet();
+    bool insert (T item);
+    T findId (const char * id, int from, int to);
+    T operator [](int index);
+};
 
-    set[occupied] = account;
-    qsort(set, occupied, sizeof(CAccount *), cmpfunc);
-    occupied ++;
-    return true;
-}
-
-void AccountSet::resize() {
-    auto ** tmp = new CAccount*[2 * length];
-
-    for (int i = 0; i < length; i++)
-        tmp[i] = set[i];
-
-    set = tmp;
-}*/
 
 class CTransaction{
+public:
     const char * from;
     const char * to;
     unsigned int amount;
     const char * id;
+    CTransaction(const char *debAccID, const char *credAccID, unsigned int amount, const char *signature);
 };
+
+
+class CAccount{
+    int initDeposit;
+    int balance;
+    myVector <CTransaction *> transactions;
+    friend int cmpfunc (const void * a, const void * b);
+public:
+    const char * id;
+    unsigned Balance();
+    CAccount (const char * c, int initBal);
+    void addTransaction (CTransaction * transaction);
+    void trimTransactions();
+    friend ostream & operator << (ostream & os, CAccount & acc);
+};
+
 
 class CBank
 {
-  public:
+public:
     // default constructor
     // copy constructor
     // destructor
@@ -112,11 +86,171 @@ class CBank
                            const char * signature );
     bool   TrimAccount   ( const char * accID );
     CAccount & Account (const char * accID );
-  private:
+private:
     // todo
     // AccountSet accounts;
-    Myset <CAccount * > accounts;
+    mySet <CAccount * > accounts;
 };
+
+
+int cmpfunc (const void * a, const void * b) {
+    const CAccount * aa = *(const CAccount **)a;
+    const CAccount * bb = *(const CAccount **)b;
+    const char * l = aa->id;
+    const char * r = bb->id;
+    int res = strcmp(l, r);
+
+    std::cout << "> left: " << l << ", right: " << r << " | res = " << res << std::endl;
+
+    return res;
+}
+
+/* =================== DEFINITIONS =================== */
+
+template<typename T>
+T myVector<T>::operator[](int index) {
+    return items[index];
+}
+
+template<typename T>
+myVector<T>::~myVector() {
+    delete [] items;
+}
+
+template<typename T>
+myVector<T>::myVector() {
+    const int INIT_SIZE = 100;
+    items = new T[INIT_SIZE];
+    size = INIT_SIZE;
+    occupied = 0;
+}
+
+template<typename T>
+bool myVector<T>::push_back(T item) {
+    if (occupied == size)
+        resize();
+
+    items[occupied] = item;
+    occupied ++;
+
+    return true;
+}
+
+template<typename T>
+void myVector<T>::resize() {
+    auto * tmp = new T[2 * size];
+
+    for (int i = 0; i < size; i++)
+        tmp[i] = items[i];
+
+    delete [] items;
+    items = tmp;
+    size *= 2;
+}
+
+template<typename T>
+void myVector<T>::clear() {
+    delete [] items;
+    *this = myVector();
+}
+
+/* ---------------------------------------------------- */
+
+template<typename T>
+mySet<T>::mySet() {
+    const int INIT_SIZE = 100;
+    items = new T[INIT_SIZE];
+    size = INIT_SIZE;
+    occupied = 0;
+}
+
+template<typename T>
+bool mySet<T>::insert(T item) {
+    if (occupied == size)
+        resize();
+
+    if (idExist(item->id))
+        return false;
+
+    items[occupied] = item;
+    occupied ++;
+    qsort(items, occupied, sizeof(T), cmpfunc);
+
+    return true;
+}
+
+template<typename T>
+mySet<T>::~mySet() {
+    delete [] items;
+}
+
+template<typename T>
+T mySet<T>::operator[](int index) {
+    return items[index];
+}
+
+template<typename T>
+void mySet<T>::resize() {
+    auto * tmp = new T[2 * size];
+
+    for (int i = 0; i < size; i++)
+        tmp[i] = items[i];
+
+    delete [] items;
+    items = tmp;
+    size *= 2;
+}
+
+template<typename T>
+bool mySet<T>::idExist(const char *id) {
+    if (occupied == 0)
+        return false;
+    return findId(id, 0, occupied) != nullptr;
+}
+
+template<typename T>
+T mySet<T>::findId(const char *id, int from, int to) {
+    if (to < from)
+        return nullptr;
+    int mid = (from + to) / 2;
+    if (mid == occupied)
+        return nullptr;
+    int comparison = strcmp(id, items[mid]->id);
+    if (comparison == 0)
+        return items[mid];
+    if (comparison > 0)
+        return findId(id, (mid + 1), to);
+    return findId(id, from, (mid - 1));
+}
+
+/* ---------------------------------------------------- */
+
+CTransaction::CTransaction(const char *debAccID, const char *credAccID, unsigned int amount, const char *signature)
+        : from(debAccID), to(credAccID), amount(amount), id(signature) {}
+
+/* ---------------------------------------------------- */
+
+CAccount::CAccount(const char *c, int initBal) : initDeposit(initBal), id(c), balance(initBal) {}
+
+void CAccount::addTransaction(CTransaction *transaction) {
+    transactions.push_back(transaction);
+
+    if (transaction->from == id)
+        balance -= transaction->amount;
+    else
+        balance += transaction->amount;
+}
+
+unsigned CAccount::Balance() {
+    return balance;
+}
+
+void CAccount::trimTransactions() {
+    initDeposit = balance;
+    transactions.clear();
+}
+
+/* ---------------------------------------------------- */
 
 bool CBank::NewAccount(const char *accID, int initialBalance) {
     auto * acc = new  CAccount(accID, initialBalance);
@@ -124,16 +258,57 @@ bool CBank::NewAccount(const char *accID, int initialBalance) {
 }
 
 bool CBank::Transaction(const char *debAccID, const char *credAccID, unsigned int amount, const char *signature) {
-    CTransaction * transaction = new  
+    auto * transaction = new CTransaction(debAccID, credAccID, amount, signature);
+    CAccount * deb = accounts.findId(debAccID, 0, accounts.occupied);
+    CAccount * cred = accounts.findId(credAccID, 0, accounts.occupied);
+
+    if (deb == nullptr || cred == nullptr || deb == cred)
+        return false;
+
+    deb->addTransaction(transaction);
+    cred->addTransaction(transaction);
+
     return true;
 }
 
+CAccount & CBank::Account(const char *accID) {
+    CAccount * res = accounts.findId(accID, 0, accounts.occupied);
+    if (res == nullptr)
+        throw exception {    };
+    return *res;
+}
+
+bool CBank::TrimAccount(const char *accID) {
+    CAccount * res = accounts.findId(accID, 0, accounts.occupied);
+    if (res == nullptr)
+        return false;
+
+    res->trimTransactions();
+
+    return true;
+}
+
+/* ---------------------------------------------------- */
+
 ostream & operator << (ostream & os, CAccount & acc){
+    os << acc.id << ":" << endl << "   " << acc.initDeposit << endl;
+    // todo vypsat transakce
+    for (int i = 0; i < acc.transactions.occupied; i++){
+        if (acc.transactions[i]->from == acc.id)
+            os << " - " << acc.transactions[i]->amount << ", to: " << acc.transactions[i]->to;
+        else
+            os << " + " << acc.transactions[i]->amount << ", from: " << acc.transactions[i]->from;
+        os << ", sign: " << acc.transactions[i]->id << endl;
+    }
+
+    os << " = " << acc.balance << endl;
     return os;
 }
 
+/* ---------------------------------------------------- */
+
 #ifndef __PROGTEST__
-int main ( void )
+int main ( )
 {
   ostringstream os;
   char accCpy[100], debCpy[100], credCpy[100], signCpy[100];
@@ -144,7 +319,11 @@ int main ( void )
   assert ( x0 . Transaction ( "123456", "987654", 2890, "AbG5uKz6E=" ) );
   assert ( x0 . NewAccount ( "111111", 5000 ) );
   assert ( x0 . Transaction ( "111111", "987654", 290, "Okh6e+8rAiuT5=" ) );
- /* assert ( x0 . Account ( "123456" ). Balance ( ) ==  -2190 );
+
+    cout << x0.Account("123456");
+    cout << x0.Account("987654");
+    cout << x0.Account("111111");
+  assert ( x0 . Account ( "123456" ). Balance ( ) ==  -2190 );
   assert ( x0 . Account ( "987654" ). Balance ( ) ==  2980 );
   assert ( x0 . Account ( "111111" ). Balance ( ) ==  4710 );
   os . str ( "" );
@@ -162,7 +341,7 @@ int main ( void )
   os << x0 . Account ( "987654" );
   assert ( ! strcmp ( os . str () . c_str (), "987654:\n   2980\n + 123, from: 111111, sign: asdf78wrnASDT3W\n = 3103\n" ) );
 
-  CBank x2;
+  /*CBank x2;
   strncpy ( accCpy, "123456", sizeof ( accCpy ) );
   assert ( x2 . NewAccount ( accCpy, 1000 ));
   strncpy ( accCpy, "987654", sizeof ( accCpy ) );

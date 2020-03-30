@@ -13,11 +13,11 @@ class mySet {
 
     void resize ();
     bool idExist (const char * id);
-    T findId (const char * id, int from, int to);
 public:
     mySet ();
     ~ mySet();
     bool insert (T item);
+    T findId (const char * id, int from, int to);
     T operator [](int index);
 };
 
