@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/progtest4.dir/mySet.cpp.o  -o progtest4 
