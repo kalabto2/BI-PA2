@@ -25,6 +25,7 @@ public:
     bool push_back (T item);
     void clear();
     T operator [](int index);
+    myVector<T> & operator = (const myVector<T> & vector);
 };
 
 
@@ -42,16 +43,20 @@ public:
     bool insert (T item);
     T findId (const char * id, int from, int to);
     T operator [](int index);
+    mySet<T> & operator = (const mySet<T> & item);
 };
 
 
 class CTransaction{
 public:
+    int pointNum = 0;
     const char * from;
     const char * to;
     unsigned int amount;
     const char * id;
     CTransaction(const char *debAccID, const char *credAccID, unsigned int amount, const char *signature);
+    ~CTransaction();
+    CTransaction &operator = (const CTransaction & transaction);
 };
 
 
@@ -64,9 +69,11 @@ public:
     const char * id;
     unsigned Balance();
     CAccount (const char * c, int initBal);
+    ~CAccount();
     void addTransaction (CTransaction * transaction);
     void trimTransactions();
     friend ostream & operator << (ostream & os, CAccount & acc);
+    CAccount &operator = (CAccount const & acc);
 };
 
 
@@ -74,9 +81,13 @@ class CBank
 {
 public:
     // default constructor
+    CBank  ();
     // copy constructor
+    CBank  (CBank const & bank);
     // destructor
+        // todo?
     // operator =
+    CBank &operator = (const CBank & bank);
 
     bool   NewAccount    ( const char * accID,
                            int          initialBalance );
@@ -87,8 +98,6 @@ public:
     bool   TrimAccount   ( const char * accID );
     CAccount & Account (const char * accID );
 private:
-    // todo
-    // AccountSet accounts;
     mySet <CAccount * > accounts;
 };
 
@@ -100,7 +109,7 @@ int cmpfunc (const void * a, const void * b) {
     const char * r = bb->id;
     int res = strcmp(l, r);
 
-    std::cout << "> left: " << l << ", right: " << r << " | res = " << res << std::endl;
+    //std::cout << "> left: " << l << ", right: " << r << " | res = " << res << std::endl;
 
     return res;
 }
@@ -114,7 +123,13 @@ T myVector<T>::operator[](int index) {
 
 template<typename T>
 myVector<T>::~myVector() {
-    delete [] items;
+    for (int i = 0; i < occupied; i++){
+        if (items[i]->pointNum == 1)
+            delete items[i];
+        else
+            items[i]->pointNum --;
+    }
+     delete [] items;
 }
 
 template<typename T>
@@ -130,6 +145,7 @@ bool myVector<T>::push_back(T item) {
     if (occupied == size)
         resize();
 
+    item->pointNum ++;
     items[occupied] = item;
     occupied ++;
 
@@ -143,6 +159,7 @@ void myVector<T>::resize() {
     for (int i = 0; i < size; i++)
         tmp[i] = items[i];
 
+
     delete [] items;
     items = tmp;
     size *= 2;
@@ -150,8 +167,35 @@ void myVector<T>::resize() {
 
 template<typename T>
 void myVector<T>::clear() {
+    for (int i = 0; i < occupied; i++){
+        if (items[i]->pointNum == 1)
+            delete items[i];
+        else
+            items[i]->pointNum --;
+    }
     delete [] items;
-    *this = myVector();
+
+    //*this = myVector();   -- WHY DOESNT WORK?
+
+    const int INIT_SIZE = 100;
+    items = new T[INIT_SIZE];
+    size = INIT_SIZE;
+    occupied = 0;
+}
+
+template<typename T>
+myVector<T> & myVector<T>::operator=(const myVector<T> &vector) {
+    size = vector.size;
+    occupied = vector.occupied;
+
+    for (int i = 0; i < occupied; i++){
+        auto * acc = new  CTransaction("", "", 0, "");
+        *acc = *vector.items[i];
+        //CAccount tmp = *item.items[i];
+        items[i] = acc;
+    }
+
+    return *this;
 }
 
 /* ---------------------------------------------------- */
@@ -181,6 +225,9 @@ bool mySet<T>::insert(T item) {
 
 template<typename T>
 mySet<T>::~mySet() {
+    for (int i = 0; i < occupied; i++){
+        delete items[i];
+    }
     delete [] items;
 }
 
@@ -223,19 +270,81 @@ T mySet<T>::findId(const char *id, int from, int to) {
     return findId(id, from, (mid - 1));
 }
 
+template<typename T>
+mySet<T> & mySet<T>::operator = (const mySet<T> &item) {
+    size = item.size;
+    occupied = item.occupied;
+
+    items = new T[size];
+
+    for (int i = 0; i < occupied; i++){
+        auto * acc = new  CAccount("", 0);
+        *acc = *item.items[i];
+        //CAccount tmp = *item.items[i];
+        items[i] = acc;
+    }
+
+    return *this;
+}
+
 /* ---------------------------------------------------- */
 
 CTransaction::CTransaction(const char *debAccID, const char *credAccID, unsigned int amount, const char *signature)
-        : from(debAccID), to(credAccID), amount(amount), id(signature) {}
+        : amount(amount) {
+    char * tmp = new char[strlen(signature) + 1];
+    memcpy(tmp, signature, sizeof(char) * (strlen(signature) + 1));
+    id = tmp;
+
+    char * tmp2 = new char[strlen(credAccID) + 1];
+    memcpy(tmp2, credAccID, sizeof(char) * (strlen(credAccID) + 1));
+    to = tmp2;
+
+    char * tmp3 = new char[strlen(debAccID) + 1];
+    memcpy(tmp3, debAccID, sizeof(char) * (strlen(debAccID) + 1));
+    from = tmp3;
+}
+
+CTransaction::~CTransaction() {
+    delete [] from;
+    delete [] to;
+    delete [] id;
+}
+
+CTransaction &CTransaction::operator=(const CTransaction & transaction) {
+    amount = transaction.amount;
+    pointNum = 1;
+
+    delete [] id;
+    char * tmp = new char [strlen(transaction.id) + 1];
+    memcpy(tmp, transaction.id, sizeof(char) * (strlen(transaction.id) + 1));
+    id = tmp;
+
+    delete [] from;
+    char * tmp2 = new char [strlen(transaction.from) + 1];
+    memcpy(tmp2, transaction.from, sizeof(char) * (strlen(transaction.from) + 1));
+    from = tmp2;
+
+    delete [] to;
+    char * tmp3 = new char [strlen(transaction.to) + 1];
+    memcpy(tmp3, transaction.to, sizeof(char) * (strlen(transaction.to) + 1));
+    to = tmp3;
+
+    return *this;
+}
 
 /* ---------------------------------------------------- */
 
-CAccount::CAccount(const char *c, int initBal) : initDeposit(initBal), id(c), balance(initBal) {}
+CAccount::CAccount(const char *c, int initBal) : initDeposit(initBal), balance(initBal) {
+    char * tmp = new char[strlen(c) + 1];
+    // strncpy(tmp, c, strlen(c));
+    memcpy(tmp, c, sizeof(char) * (strlen(c) + 1));
+    id = tmp;
+}
 
 void CAccount::addTransaction(CTransaction *transaction) {
     transactions.push_back(transaction);
 
-    if (transaction->from == id)
+    if (strcmp(transaction->from, id) == 0)
         balance -= transaction->amount;
     else
         balance += transaction->amount;
@@ -254,16 +363,26 @@ void CAccount::trimTransactions() {
 
 bool CBank::NewAccount(const char *accID, int initialBalance) {
     auto * acc = new  CAccount(accID, initialBalance);
-    return accounts.insert(acc);
+
+    if (!accounts.insert(acc)){
+        delete acc;
+        return false;
+    }
+
+    return true;
 }
 
 bool CBank::Transaction(const char *debAccID, const char *credAccID, unsigned int amount, const char *signature) {
-    auto * transaction = new CTransaction(debAccID, credAccID, amount, signature);
+    if (strcmp(debAccID,credAccID) == 0)
+        return false;
+
     CAccount * deb = accounts.findId(debAccID, 0, accounts.occupied);
     CAccount * cred = accounts.findId(credAccID, 0, accounts.occupied);
 
-    if (deb == nullptr || cred == nullptr || deb == cred)
+    if (deb == nullptr || cred == nullptr)
         return false;
+
+    auto * transaction = new CTransaction(debAccID, credAccID, amount, signature);
 
     deb->addTransaction(transaction);
     cred->addTransaction(transaction);
@@ -288,13 +407,29 @@ bool CBank::TrimAccount(const char *accID) {
     return true;
 }
 
+CBank::CBank() {
+        // todo
+}
+
+CBank::CBank(CBank const & bank) {
+    accounts.~mySet();
+    accounts.operator=(bank.accounts);
+}
+
+CBank &CBank::operator=(const CBank & bank) {
+    accounts.~mySet();
+    accounts.operator=(bank.accounts);
+
+    return *this;
+}
+
 /* ---------------------------------------------------- */
 
 ostream & operator << (ostream & os, CAccount & acc){
     os << acc.id << ":" << endl << "   " << acc.initDeposit << endl;
-    // todo vypsat transakce
+
     for (int i = 0; i < acc.transactions.occupied; i++){
-        if (acc.transactions[i]->from == acc.id)
+        if (strcmp(acc.transactions[i]->from, acc.id) == 0)
             os << " - " << acc.transactions[i]->amount << ", to: " << acc.transactions[i]->to;
         else
             os << " + " << acc.transactions[i]->amount << ", from: " << acc.transactions[i]->from;
@@ -303,6 +438,25 @@ ostream & operator << (ostream & os, CAccount & acc){
 
     os << " = " << acc.balance << endl;
     return os;
+}
+
+CAccount &CAccount::operator=(CAccount const &acc) {
+    cout << ">>>" << initDeposit << " " <<  acc.initDeposit << endl;
+    initDeposit = acc.initDeposit;
+    balance = acc.balance;
+
+    delete [] id;
+    char * tmp = new char [strlen(acc.id) + 1];
+    memcpy(tmp, acc.id, sizeof(char) * (strlen(acc.id) + 1));
+    id = tmp;
+
+    transactions = acc.transactions;
+
+    return *this;
+}
+
+CAccount::~CAccount() {
+    delete [] id;
 }
 
 /* ---------------------------------------------------- */
@@ -341,7 +495,7 @@ int main ( )
   os << x0 . Account ( "987654" );
   assert ( ! strcmp ( os . str () . c_str (), "987654:\n   2980\n + 123, from: 111111, sign: asdf78wrnASDT3W\n = 3103\n" ) );
 
-  /*CBank x2;
+  CBank x2;
   strncpy ( accCpy, "123456", sizeof ( accCpy ) );
   assert ( x2 . NewAccount ( accCpy, 1000 ));
   strncpy ( accCpy, "987654", sizeof ( accCpy ) );
@@ -418,10 +572,12 @@ int main ( )
   assert ( x7 . Transaction ( "111111", "987654", 789, "SGDFTYE3sdfsd3W" ) );
   assert ( x6 . NewAccount ( "99999999", 7000 ) );
   assert ( x6 . Transaction ( "111111", "99999999", 3789, "aher5asdVsAD" ) );
+    cout << x6.Account("111111");
   assert ( x6 . TrimAccount ( "111111" ) );
   assert ( x6 . Transaction ( "123456", "111111", 221, "Q23wr234ER==" ) );
   os . str ( "" );
   os << x6 . Account ( "111111" );
+    cout << os.str();
   assert ( ! strcmp ( os . str () . c_str (), "111111:\n   -1802\n + 221, from: 123456, sign: Q23wr234ER==\n = -1581\n" ) );
   os . str ( "" );
   os << x6 . Account ( "99999999" );
@@ -464,7 +620,7 @@ int main ( )
   os . str ( "" );
   os << x9 . Account ( "111111" );
   assert ( ! strcmp ( os . str () . c_str (), "111111:\n   5000\n - 2890, to: 987654, sign: Okh6e+8rAiuT5=\n - 789, to: 987654, sign: SGDFTYE3sdfsd3W\n = 1321\n" ) );
-*/
+    /**/
   return 0;
 }
 #endif /* __PROGTEST__ */
