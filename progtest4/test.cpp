@@ -12,6 +12,8 @@
 using namespace std;
 #endif /* __PROGTEST__ */
 
+const int INIT_SIZE = 1;
+
 template <typename T>
 class myVector {
     T * items;
@@ -134,7 +136,7 @@ myVector<T>::~myVector() {
 
 template<typename T>
 myVector<T>::myVector() {
-    const int INIT_SIZE = 100;
+    //const int INIT_SIZE = 100;
     items = new T[INIT_SIZE];
     size = INIT_SIZE;
     occupied = 0;
@@ -156,8 +158,9 @@ template<typename T>
 void myVector<T>::resize() {
     auto * tmp = new T[2 * size];
 
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < size; i++) {
         tmp[i] = items[i];
+    }
 
 
     delete [] items;
@@ -177,7 +180,7 @@ void myVector<T>::clear() {
 
     //*this = myVector();   -- WHY DOESNT WORK?
 
-    const int INIT_SIZE = 100;
+    //const int INIT_SIZE = 100;
     items = new T[INIT_SIZE];
     size = INIT_SIZE;
     occupied = 0;
@@ -187,6 +190,9 @@ template<typename T>
 myVector<T> & myVector<T>::operator=(const myVector<T> &vector) {
     size = vector.size;
     occupied = vector.occupied;
+
+    delete [] items;
+    items = new T[size];
 
     for (int i = 0; i < occupied; i++){
         auto * acc = new  CTransaction("", "", 0, "");
@@ -202,7 +208,7 @@ myVector<T> & myVector<T>::operator=(const myVector<T> &vector) {
 
 template<typename T>
 mySet<T>::mySet() {
-    const int INIT_SIZE = 100;
+    //const int INIT_SIZE = 100;
     items = new T[INIT_SIZE];
     size = INIT_SIZE;
     occupied = 0;
