@@ -56,7 +56,6 @@ int CTimeStamp::Compare(const CTimeStamp &x) const {
 
 ostream &operator<<(ostream &os, const CTimeStamp &x) {
     os << setw(4) << setfill('0') << x.year << "-" << setw(2) << x.month << "-" << x.day << " " << x.hour << ":" << x.minute << ":" << x.sec;
-
     return os;
 }
 
@@ -130,6 +129,9 @@ class CMail
     const CMailBody  & Body                                ( void ) const;
     const CTimeStamp & TimeStamp                           ( void ) const;
     const CAttach* Attachment                              ( void ) const;
+    ~CMail();
+    CMail &operator = (const CMail & x);
+    CMail   (const CMail & x);
 
     friend ostream & operator <<                           ( ostream          & os,
                                                              const CMail      & x );
@@ -171,11 +173,34 @@ ostream &operator<<(ostream &os, const CMail &x) {
     return os;
 }
 
+CMail::~CMail() {
+    if (cAttach)
+        cAttach->Release();
+}
+
+CMail &CMail::operator=(const CMail &x) {
+    from = x.from;
+    body = x.body;
+    timeStamp = x.timeStamp;
+    if(cAttach)
+        cAttach->Release();
+    cAttach = x.cAttach;
+    cAttach->AddRef();
+
+    return *this;
+}
+
+CMail::CMail(const CMail &x) : from(x.from), body(x.body), timeStamp(x.timeStamp){
+    cAttach = x.cAttach;
+    if (cAttach)
+        cAttach->AddRef();
+}
+
 struct compare {
     bool operator()(const CMail &lhs,
                     const CMail &rhs) const {
         int res = lhs.TimeStamp().Compare(rhs.TimeStamp());
-        return res == -1 || res == 0;
+        return res <= 0;
     }
 };
 
@@ -194,8 +219,6 @@ class CMailBox
     set<string>    ListAddr                                ( const CTimeStamp & from,
                                                              const CTimeStamp & to ) const;
   private:
-    // todo
-    //map <string, vector<CMail> > folders;
     map <string, multiset<CMail, compare> > folders;
 };
 
@@ -211,6 +234,11 @@ bool CMailBox::Delivery(const CMail &mail) {
 }
 
 bool CMailBox::NewFolder(const string &folderName) {
+    auto it = folders.find(folderName);
+
+    if (it != folders.end())
+        return false;
+
     multiset<CMail, compare> a;
     folders.insert({folderName, a});
 
@@ -218,18 +246,32 @@ bool CMailBox::NewFolder(const string &folderName) {
 }
 
 bool CMailBox::MoveMail(const string &fromFolder, const string &toFolder) {
-    return false;
+    auto it = folders.find(fromFolder);
+    auto it2 = folders.find(toFolder);
+
+    if (it == folders.end() || it2 == folders.end())
+        return false;
+
+     for (auto & mail : folders[fromFolder]){
+         folders[toFolder].insert(mail);
+     }
+
+    folders[fromFolder].clear();
+
+    return true;
 }
 
 list<CMail> CMailBox::ListMail(const string &folderName, const CTimeStamp &from, const CTimeStamp &to) const {
     list<CMail> res;
 
-    auto begin = folders.find(folderName)->second.lower_bound(CMail(from, "", CMailBody(5, "nullptr"), nullptr));
+    auto it = folders.find(folderName);
+    if (it == folders.end())
+        return res;
+
+    auto begin = folders.find(folderName)->second.upper_bound(CMail(from, "", CMailBody(5, "nullptr"), nullptr));
     auto end = folders.find(folderName)->second.lower_bound(CMail(to, "", CMailBody(5, "nullptr"), nullptr));
 
-
     for (; begin != end; begin++){
-        //cout << *begin << endl;
         CMail tmp = *begin;
         res.push_back(tmp);
     }
@@ -238,7 +280,19 @@ list<CMail> CMailBox::ListMail(const string &folderName, const CTimeStamp &from,
 }
 
 set<string> CMailBox::ListAddr(const CTimeStamp &from, const CTimeStamp &to) const {
-    return set<string>();
+    set<string> res;
+
+    for (auto & folder : folders){
+        auto begin = folder.second.upper_bound(CMail(from, "", CMailBody(5, "nullptr"), nullptr));
+        auto end = folder.second.lower_bound(CMail(to, "", CMailBody(5, "nullptr"), nullptr));
+
+        for (; begin != end; begin++){
+            CMail tmp = *begin;
+            res.insert(tmp.From());
+        }
+    }
+
+    return res;
 }
 
 //=================================================================================================
@@ -250,13 +304,17 @@ static string showMail ( const list<CMail> & l )
       oss << x << endl;
       cout << x << endl;
   }
+  cout << endl;
   return oss . str ();
 }
 static string showUsers ( const set<string> & s )
 {
   ostringstream oss;
-  for ( const auto & x : s )
-    oss << x << endl;
+  for ( const auto & x : s ) {
+      oss << x << endl;
+      cout << x << endl;
+  }
+  cout << endl;
   return oss . str ();
 }
 int main ( void )
@@ -286,7 +344,7 @@ int main ( void )
                       CTimeStamp ( 2014, 3, 31, 15, 26, 23 ),
                       CTimeStamp ( 2014, 3, 31, 16, 12, 48 ) ) ) == "2014-03-31 15:26:23 user2@fit.cvut.cz mail body: 22 B\n"
                         "2014-03-31 16:12:48 boss1@fit.cvut.cz mail body: 24 B + attachment: 97 B\n" );
-  /*assert ( showUsers ( m0 . ListAddr ( CTimeStamp ( 2000, 1, 1, 0, 0, 0 ),
+  assert ( showUsers ( m0 . ListAddr ( CTimeStamp ( 2000, 1, 1, 0, 0, 0 ),
                        CTimeStamp ( 2050, 12, 31, 23, 59, 59 ) ) ) == "boss1@fit.cvut.cz\n"
                         "user1@fit.cvut.cz\n"
                         "user2@fit.cvut.cz\n" );
