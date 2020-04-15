@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/progtest6.dir/test.cpp.o  -o progtest6 
